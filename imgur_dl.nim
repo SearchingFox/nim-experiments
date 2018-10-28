@@ -6,7 +6,7 @@ import streams
 import strutils
 
 var client = newHttpClient()
-# client.headers["Authorization"] =
+client.headers["Authorization"] = readFile(joinPath(getAppDir(), "config"))
 
 echo "Enter URL:"
 var link = readLine(stdin)
@@ -21,7 +21,7 @@ discard existsOrCreateDir(folderName)
 
 var c = 0
 for node in data["images"]:
-    let fileName = folderName & c.intToStr() & "_" & node["id"].getStr & "." & node["type"].getStr.split("/")[1]
+    let fileName = folderName & $c & "_" & node["id"].getStr & "." & node["type"].getStr.split("/")[1]
     echo "Saving ", fileName
     
     var f = newFileStream(fileName, fmWrite)

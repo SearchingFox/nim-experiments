@@ -12,16 +12,16 @@ proc sortBy1000(rootDir:string) =
     var curDir = 1
     var count = 0
 
-    createDir(joinPath(rootDir, "__" & curDir.intToStr()))
+    createDir(joinPath(rootDir, "__" & $curDir))
     for oldFilePath in walkDirRec(rootDir):
         if count < 1000:
             count += 1
-            #moveFile(oldFilePath, joinPath(rootDir, "__" & curDir.intToStr(), extractFilename(oldFilePath)))
-            echo count, " ", joinPath(rootDir, "__" & curDir.intToStr(), extractFilename(oldFilePath))
+            #moveFile(oldFilePath, joinPath(rootDir, "__" & $curDir, extractFilename(oldFilePath)))
+            echo count, " ", joinPath(rootDir, "__" & $curDir, extractFilename(oldFilePath))
         else:
             count = 0
             curDir += 1
-            #createDir(joinPath(rootDir, "__" & curDir.intToStr()))
+            #createDir(joinPath(rootDir, "__" & $curDir))
             echo curDir
 
 proc findSameNames(rootDir: string) =

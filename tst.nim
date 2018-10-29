@@ -1,16 +1,16 @@
-import os, strutils, browsers, sequtils, sets, json, ospaths
+import os, strutils, browsers, sequtils, sets, json, ospaths, sugar, uri, base64
 
-proc getFolderSize(path: string) =
+proc getFoldersSize(path: string) =
     var size: BiggestInt = 0
     for i in walkDirRec(path):
         size += getFileSize(i)
     echo size
 # -------------------------------------------------------------------
-proc opnlks (inp: string) =
-    for l in inp.splitLines(): openDefaultBrowser(l)
+proc openLinks (inp: string) =
+    for l in inp.splitLines: openDefaultBrowser(l)
 # -------------------------------------------------------------------
 proc deduplicateLines(lines: string) =
-    for i in deduplicate(lines.splitLines()):
+    for i in lines.splitLines.deduplicate:
         echo i
 # -------------------------------------------------------------------
 proc compareFiles(file1: string, file2: string) =
@@ -48,6 +48,7 @@ proc deduplicateFile(filePath: string) =
 # for _, file in walkDir(joinPath(getHomeDir(), "Desktop", "firefox_tabs_181019_1348")):
 #     outSeq.add(readFile(file))
 # writeFile(joinPath(getHomeDir(), "Desktop", "firefox_tabs_181019_1944.txt"), outSeq.deduplicate.join("\n"))
+# -------------------------------------------------------------------
 proc findEmptyFolders(path: string) =
     for file in walkDirRec(path):
         echo file
@@ -56,5 +57,30 @@ proc prettyPrint(file: string) =
     var c = 1
     var text = ""
     writeFile(file, readFile(file).parseJson.pretty)
+# -------------------------------------------------------------------
+proc arrow() =
+    type fptr = (int -> int)
 
-# opnlks("""""")
+    proc f(x:int): int =
+        result = x+1
+
+    var myf : fptr = f
+    echo myf(0)
+# -------------------------------------------------------------------
+# proc z(x: typedesc[int]): int = 0
+# proc z(x: typedesc[float]): float = 0.0
+
+# type Monoid = concept x, y
+# x + y is type(x)
+# z(type(x)) is type(x)
+
+# echo "int is monoid -> ", 3 is Monoid
+# let x = 3
+# echo z(type(x)) # prints 0
+# -------------------------------------------------------------------
+# echo lc[x | (x <- 1..10, x mod 2 == 0), int]
+#TODO: script to update all programms from github
+
+# openLinks("""""")
+# echo decodeUrl("")
+# echo decode("")

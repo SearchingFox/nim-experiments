@@ -15,7 +15,7 @@ echo link
 
 var data = parseJson(client.getContent("https://api.imgur.com/3/album/" & link.split('/')[^1]))["data"]
 
-let folderName = filter(data["title"].getStr, proc (i: char): bool = i notin "/\\:*?\"<>|").join() & "\\"
+let folderName = "D:\\" & filter(data["title"].getStr, proc (i: char): bool = i notin "/\\:*?\"<>|").join() & "\\"
 echo folderName
 discard existsOrCreateDir(folderName)
 

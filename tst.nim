@@ -71,16 +71,16 @@ proc arrow() =
     echo myf(0)
 # -------------------------------------------------------------------
 proc download_links() =
-    for i in 440..597:
-        let folder = ""
-        let pic_url = ""
-        let fileName = joinPath(folder, pic_url.split('/')[^1])
+    for i in 126..130:
+        let folder = "D:\\"
+        let pic_url = "" & $i & ".jpg"
+        let fileName = joinPath(folder, $i & ".jpg")#pic_url.split('/')[^1])
 
         var f = newFileStream(fileName, fmWrite)
         if not f.isNil:
             f.write newHttpClient().getContent(pic_url)
         echo "Saved ", fileName
-        sleep(500)
+        # sleep(500)
 # -------------------------------------------------------------------
 # proc z(x: typedesc[int]): int = 0
 # proc z(x: typedesc[float]): float = 0.0
@@ -96,7 +96,7 @@ proc download_links() =
 # echo lc[x | (x <- 1..10, x mod 2 == 0), int]
 #TODO: script to update all programms from github
 
-openLinks("""""")
+# openLinks("""""")
 # echo decodeUrl("")
 # echo decode("")
 # download_links()

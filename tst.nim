@@ -1,7 +1,8 @@
-import os, strutils, browsers, sequtils, sets, json, ospaths, sugar, uri, base64, streams
+import os, strutils, browsers, sequtils, sets, json, ospaths, sugar, uri, base64, streams, random
 import htmlparser
 import httpclient
 import xmltree
+import algorithm
 
 proc getFoldersSize(path: string) =
     var size: BiggestInt = 0
@@ -12,13 +13,14 @@ proc getFoldersSize(path: string) =
 proc openLinks (inp: string) =
     for l in inp.splitLines: openDefaultBrowser(l)
 # -------------------------------------------------------------------
-proc deduplicateLines(lines: string) =
-    for i in lines.splitLines.deduplicate:
+proc deduplicateLines(liness: string) =
+    for i in liness.splitLines.deduplicate():
         echo i
 # -------------------------------------------------------------------
 proc compareFiles(file1: string, file2: string) =
-    var f1 = readFile(file1).splitLines.toSet
-    var f2 = readFile(file2).splitLines.toSet
+    let
+        f1 = readFile(file1).splitLines.toSet
+        f2 = readFile(file2).splitLines.toSet
     var outFile = toSeq(items(f1 - f2)).join("\n") & "\n" & repeat('-', 80) & "\n" & toSeq(items(f2 - f1)).join("\n")
     writeFile(joinPath(getHomeDir(), "Desktop", "out.txt"), outFile)
 # -------------------------------------------------------------------
@@ -27,8 +29,7 @@ proc deleteLinesFromFile(filePath: string, linesSeq: seq[string]) =
     writeFile(filePath, fileContent.filterIt(it notin linesSeq).join("\n"))
 # -------------------------------------------------------------------
 proc deduplicateFile(filePath: string) =
-    var fileContent = readFile(filePath).splitLines
-    writeFile(filePath, fileContent.deduplicate.join("\n"))
+    writeFile(filePath, readFile(filePath).splitLines.deduplicate.join("\n"))
 # -------------------------------------------------------------------
 # var outStr = ""
 # for i in parseJson(readFile(""))["notes"]:
@@ -57,8 +58,6 @@ proc findEmptyFolders(path: string) =
         echo file
 # -------------------------------------------------------------------
 proc prettyPrint(file: string) =
-    var c = 1
-    var text = ""
     writeFile(file, readFile(file).parseJson.pretty)
 # -------------------------------------------------------------------
 proc arrow() =
@@ -74,7 +73,7 @@ proc download_links() =
     for i in 126..130:
         let folder = "D:\\"
         let pic_url = "" & $i & ".jpg"
-        let fileName = joinPath(folder, $i & ".jpg")#pic_url.split('/')[^1])
+        let fileName = joinPath(folder, $i & ".jpg")  # pic_url.split('/')[^1])
 
         var f = newFileStream(fileName, fmWrite)
         if not f.isNil:
@@ -82,6 +81,12 @@ proc download_links() =
         echo "Saved ", fileName
         # sleep(500)
 # -------------------------------------------------------------------
+proc get_links_only(file_path: string): seq[string] =
+    for l in lines(file_path):
+        if "<A" in l:
+            result.add(l[l.find('"')+1..<l.find("\" A")])
+# -------------------------------------------------------------------
+
 # proc z(x: typedesc[int]): int = 0
 # proc z(x: typedesc[float]): float = 0.0
 
@@ -96,7 +101,29 @@ proc download_links() =
 # echo lc[x | (x <- 1..10, x mod 2 == 0), int]
 #TODO: script to update all programms from github
 
-# openLinks("""""")
+# echo get_links_only(r"C:\Users\Asus\Desktop\bookmarks_firefox_181122_0401.html")
+openLinks("""""")
 # echo decodeUrl("")
 # echo decode("")
 # download_links()
+# randomize()
+# echo rand(39)+1
+# var sav = newSeq[string]()
+# for i in lines(r"D:\Documents\35.txt"):
+#     if i != "":
+#         if i notin sav:
+#             sav.add(i)
+#         else:
+#             echo i
+proc joyr_dl(url: string) =
+    # writeFile(r"C:\Users\Asus\Desktop\1.html", )
+    let pics = parseHtml(newHttpClient().getContent(url)).findAll("a").mapIt(it.attr("href")).filterIt("avatar" notin it and [".jpeg", ".gif"].any(proc (x: string): bool = it.endsWith(x)))
+    echo len(pics)
+    echo pics
+
+# joyr_dl("http://joyreactor.cc/13710")
+# var t = newSeq[string]()
+# for i in lines(r"C:\Users\Asus\Desktop\ddd.txt"):
+#     if i.toLower notin t:
+#         t.add(i.toLower)
+#         echo i

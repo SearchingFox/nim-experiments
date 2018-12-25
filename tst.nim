@@ -11,7 +11,7 @@ proc getFoldersSize(path: string) =
     echo size
 # -------------------------------------------------------------------
 proc openLinks (inp: string) =
-    for l in inp.splitLines: openDefaultBrowser(l)
+    for l in inp.splitLines.filterIt(it != ""): openDefaultBrowser(l)
 # -------------------------------------------------------------------
 proc deduplicateLines(liness: string) =
     for i in liness.splitLines.deduplicate():
@@ -115,15 +115,19 @@ openLinks("""""")
 #             sav.add(i)
 #         else:
 #             echo i
-proc joyr_dl(url: string) =
+proc joyrDl(url: string) =
     # writeFile(r"C:\Users\Asus\Desktop\1.html", )
-    let pics = parseHtml(newHttpClient().getContent(url)).findAll("a").mapIt(it.attr("href")).filterIt("avatar" notin it and [".jpeg", ".gif"].any(proc (x: string): bool = it.endsWith(x)))
+    let pics = parseHtml(newHttpClient().getContent(url)).findAll("a").mapIt(it.attr("href")).filterIt("avatar" notin it and [".jpeg", ".gif"].any(x => it.endsWith(x)))
     echo len(pics)
     echo pics
 
-# joyr_dl("http://joyreactor.cc/13710")
+# joyrDl()
 # var t = newSeq[string]()
 # for i in lines(r"C:\Users\Asus\Desktop\ddd.txt"):
 #     if i.toLower notin t:
 #         t.add(i.toLower)
 #         echo i
+
+# for l in lines(""):
+#     if l != "" and l.contains(re"(?|(.jpg)|(.png)|(.gif))"):
+#         echo l

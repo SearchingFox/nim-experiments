@@ -1,8 +1,5 @@
-import os, strutils, browsers, sequtils, sets, json, ospaths, sugar, uri, base64, streams, random
-import htmlparser
-import httpclient
-import xmltree
-import algorithm
+import os, strutils, browsers, sequtils, sets, json, ospaths, sugar, uri, base64
+import htmlparser, httpclient, xmltree, algorithm, tables, streams, random
 
 proc getFoldersSize(path: string) =
     var size: BiggestInt = 0
@@ -31,28 +28,13 @@ proc deleteLinesFromFile(filePath: string, linesSeq: seq[string]) =
 proc deduplicateFile(filePath: string) =
     writeFile(filePath, readFile(filePath).splitLines.deduplicate.join("\n"))
 # -------------------------------------------------------------------
-# var outStr = ""
-# for i in parseJson(readFile(""))["notes"]:
-#     if i["state"].getStr != "TRASH":
-#         for j in parseJson(i["description"].getStr)["note"]:
-#             outStr &= j["text"].getStr & "\n"
-#         outStr &= repeat('-', 80) & "\n"
-# writeFile("", outStr)
+proc concat_notes(folder: string) =
+    var outSeq = newSeq[string]()
+    for _, file in walkDir(joinPath(getHomeDir(), "Desktop", folder)):
+        outSeq.add(readFile(file).splitLines[^1])
+    writeFile(joinPath(getHomeDir(), "Desktop", folder & ".txt"), outSeq.deduplicate.join("\n"))
 # -------------------------------------------------------------------
-# let
-    # lines_jp = readFile("D:\\32456547587\\scripts_va11halla\\jp\\").splitLines()
-    # lines_eng = readFile("D:\\32456547587\\scripts_va11halla\\eng\\").splitLines()
-# echo high(lines_eng)
-# var out_file = ""
-# for l in low(lines_jp)..high(lines_jp):
-#     out_file &= lines_jp[l] & "\n" & lines_eng[l] & "\n\n"
-# writeFile(joinPath(getHomeDir(), "Desktop", "learnJP.txt"), out_file)
-# -------------------------------------------------------------------
-# var outSeq = newSeq[string]()
-# for _, file in walkDir(joinPath(getHomeDir(), "Desktop", "firefox_tabs_181019_1348")):
-#     outSeq.add(readFile(file))
-# writeFile(joinPath(getHomeDir(), "Desktop", "firefox_tabs_181019_1944.txt"), outSeq.deduplicate.join("\n"))
-# -------------------------------------------------------------------
+# !NotImplemented
 proc findEmptyFolders(path: string) =
     for file in walkDirRec(path):
         echo file
@@ -86,7 +68,21 @@ proc get_links_only(file_path: string): seq[string] =
         if "<A" in l:
             result.add(l[l.find('"')+1..<l.find("\" A")])
 # -------------------------------------------------------------------
-
+proc sort_hn_by_num_of_comments(links: string) =
+    var r = initTable[string, int]()
+    for line in readFile(links).splitLines:
+        let num = parseJson(newHttpClient()
+            .getContent("https://hacker-news.firebaseio.com/v0/item/$1.json" % line.split('=')[^1]))["descendants"].getInt
+        r.add(line, num)
+        sleep(100)
+    
+    for k in toSeq(r.pairs).sorted((x, y) => cmp(x[1], y[1])):
+        echo k[1], " - ", k[0]
+# -------------------------------------------------------------------
+proc joyrDl(url: string) =
+    let pics = parseHtml(newHttpClient().getContent(url)).findAll("img").mapIt(it.attr("src")).filterIt("avatar" notin it and [".jpeg", ".gif", ".png", ".jpg"].any(x => it.endsWith(x)))
+    echo len(pics), "\n", pics
+# -------------------------------------------------------------------
 # proc z(x: typedesc[int]): int = 0
 # proc z(x: typedesc[float]): float = 0.0
 
@@ -99,10 +95,31 @@ proc get_links_only(file_path: string): seq[string] =
 # echo z(type(x)) # prints 0
 # -------------------------------------------------------------------
 # echo lc[x | (x <- 1..10, x mod 2 == 0), int]
-#TODO: script to update all programms from github
+# -------------------------------------------------------------------
+# var outStr = ""
+# for i in parseJson(readFile(""))["notes"]:
+#     if i["state"].getStr != "TRASH":
+#         for j in parseJson(i["description"].getStr)["note"]:
+#             outStr &= j["text"].getStr & "\n"
+#         outStr &= repeat('-', 80) & "\n"
+# writeFile("", outStr)
+# -------------------------------------------------------------------
+# let
+    # lines_jp = readFile("D:\\32456547587\\scripts_va11halla\\jp\\").splitLines()
+    # lines_eng = readFile("D:\\32456547587\\scripts_va11halla\\eng\\").splitLines()
+# echo high(lines_eng)
+# var out_file = ""
+# for l in low(lines_jp)..high(lines_jp):
+#     out_file &= lines_jp[l] & "\n" & lines_eng[l] & "\n\n"
+# writeFile(joinPath(getHomeDir(), "Desktop", "learnJP.txt"), out_file)
+# -------------------------------------------------------------------
 
-# echo get_links_only(r"C:\Users\Asus\Desktop\bookmarks_firefox_181122_0401.html")
-openLinks("""""")
+# *
+# echo get_links_only(r"")
+# openLinks("""""")
+# joyrDl()
+# sort_hn_by_num_of_comments(r"C:\Users\Asus\Desktop\hn3.txt")
+
 # echo decodeUrl("")
 # echo decode("")
 # download_links()
@@ -115,13 +132,7 @@ openLinks("""""")
 #             sav.add(i)
 #         else:
 #             echo i
-proc joyrDl(url: string) =
-    # writeFile(r"C:\Users\Asus\Desktop\1.html", )
-    let pics = parseHtml(newHttpClient().getContent(url)).findAll("a").mapIt(it.attr("href")).filterIt("avatar" notin it and [".jpeg", ".gif"].any(x => it.endsWith(x)))
-    echo len(pics)
-    echo pics
 
-# joyrDl()
 # var t = newSeq[string]()
 # for i in lines(r"C:\Users\Asus\Desktop\ddd.txt"):
 #     if i.toLower notin t:

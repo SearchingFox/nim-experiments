@@ -68,20 +68,32 @@ proc get_links_only(file_path: string): seq[string] =
         if "<A" in l:
             result.add(l[l.find('"')+1..<l.find("\" A")])
 # -------------------------------------------------------------------
-proc sort_hn_by_num_of_comments(links: string) =
-    var r = initTable[string, int]()
-    for line in readFile(links).splitLines:
-        let num = parseJson(newHttpClient()
-            .getContent("https://hacker-news.firebaseio.com/v0/item/$1.json" % line.split('=')[^1]))["descendants"].getInt
-        r.add(line, num)
-        sleep(100)
+proc sort_hn_by_num_of_comments(path: string) =
+    var r = initTable[string, (int, string)]()
+    for line in lines(path):
+        try:
+            let json = parseJson(newHttpClient()
+                .getContent("https://hacker-news.firebaseio.com/v0/item/$1.json" % line.split('=')[^1]))
+            r.add(line, (json["descendants"].getInt, json["title"].getStr))
+            sleep(100)
+        except KeyError: #! Change to something else
+            echo line
     
-    for k in toSeq(r.pairs).sorted((x, y) => cmp(x[1], y[1])):
-        echo k[1], " - ", k[0]
+    for k in toSeq(r.pairs).sorted((x, y) => cmp(x[1][0], y[1][0])):
+        echo k[1][0], " - ", k[0], " - ", k[1][1]
 # -------------------------------------------------------------------
 proc joyrDl(url: string) =
     let pics = parseHtml(newHttpClient().getContent(url)).findAll("img").mapIt(it.attr("src")).filterIt("avatar" notin it and [".jpeg", ".gif", ".png", ".jpg"].any(x => it.endsWith(x)))
     echo len(pics), "\n", pics
+# -------------------------------------------------------------------
+proc stripe_favicon_images(old_file_path: string) =
+    var new_html = newSeq[string]()
+    for line in lines(old_file_path):
+        if line.find("ICON_URI") > 0:
+            new_html.add(line[0..line.find("ICON_URI")-2] & line[line.find("\">")+1..^1])
+        else:
+            new_html.add(line)
+    writeFile(old_file_path[0..^6] & "_noicons.html", new_html.join("\n"))
 # -------------------------------------------------------------------
 # proc z(x: typedesc[int]): int = 0
 # proc z(x: typedesc[float]): float = 0.0
@@ -116,15 +128,17 @@ proc joyrDl(url: string) =
 
 # *
 # echo get_links_only(r"")
-# openLinks("""""")
+openLinks("""""")
 # joyrDl()
-# sort_hn_by_num_of_comments(r"C:\Users\Asus\Desktop\hn3.txt")
+# sort_hn_by_num_of_comments(r"C:\Users\Asus\Desktop\hn1.txt")
+# stripe_favicon_images(r"")
+# deduplicateFile(r"C:\Users\Asus\Desktop\tabs_firefox_181213_0330.txt")
 
 # echo decodeUrl("")
 # echo decode("")
 # download_links()
 # randomize()
-# echo rand(39)+1
+# echo rand(39)
 # var sav = newSeq[string]()
 # for i in lines(r"D:\Documents\35.txt"):
 #     if i != "":
@@ -142,3 +156,50 @@ proc joyrDl(url: string) =
 # for l in lines(""):
 #     if l != "" and l.contains(re"(?|(.jpg)|(.png)|(.gif))"):
 #         echo l
+
+# var s = newSeq[string]()
+# for i in lines(r"C:\Users\Asus\Desktop\Bookmarks_181004_2003.org"):
+#     if i != "" and not i.startsWith("* "):
+#         s.add(i)
+# writeFile(r"C:\Users\Asus\Desktop\123.txt", deduplicate(s).join("\n"))
+
+# var t = initTable[string, int]()
+# for l in lines(r"C:\Users\Asus\Desktop\hn.txt"):
+#     let s = l.split(" - ")
+#     t.add(s[1], s[0].parseInt)
+# for i in toSeq(t.pairs()).sorted((x, y) => cmp(x[1], y[1])):
+#     echo i[1], " - ", i[0]
+
+# var links1 = toSeq(getLinks(r"").values()).concat.map(x => x.url).toSet
+# var links2 = toSeq(getLinks(r"").values()).concat.map(x => x.url).toSet
+# for i in links1 - links2:
+#     echo i
+# echo "\n"
+# for i in links2 - links1:
+#     echo i
+
+# var s = newSeq[string]()
+# for i in walkFiles("D:\\Downloads\\TabSessionManager - Backup\\*.json"):
+#     s = concat(s, getLinks(i))
+# var ds = deduplicate(s)
+# var dds = toSet(ds) - toSet(getLinks(""))
+# var ss = ""
+# for i in dds:
+#     ss &= i & "\n"
+# # echo len(s), " ", len(ds)
+# writeFile("", ss)#join(s, "\n"))
+# # echo len(dds)
+
+
+# let url = "https://thehentaiworld.com/tag/liangxing/page/2/"
+# let folder = "D:\\LiangXing2\\"
+# let pics = parseHtml(newHttpClient().getContent(url)).findAll("a").mapIt(it.attr("href")).filterIt("hentai-images" in it).mapIt(parseHtml(newHttpClient().getContent(it)).findAll("a").mapIt(it.attr("href")).filterIt("wp-content" in it)).concat
+# echo len(pics)
+# var c = 0
+# for l in pics:
+#     let fileName = folder & $c & "_" & l.split("/")[^1]
+#     var f = newFileStream(fileName, fmWrite)
+#     if not f.isNil:
+#         f.write newHttpClient().getContent(l)
+#     c += 1
+# echo len(pics), "\n", pics

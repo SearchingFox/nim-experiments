@@ -66,7 +66,7 @@ proc download_links() =
 proc get_links_only(file_path: string): seq[string] =
     for l in lines(file_path):
         if "<A" in l:
-            result.add(l[l.find('"')+1..<l.find("\" A")])
+            result.add(l[l.find('"')+1 ..< l.find("\" A")])
 # -------------------------------------------------------------------
 proc sort_hn_by_num_of_comments(path: string) =
     var r = initTable[string, (int, string)]()
@@ -90,10 +90,10 @@ proc stripe_favicon_images(old_file_path: string) =
     var new_html = newSeq[string]()
     for line in lines(old_file_path):
         if line.find("ICON_URI") > 0:
-            new_html.add(line[0..line.find("ICON_URI")-2] & line[line.find("\">")+1..^1])
+            new_html.add(line[0 .. line.find("ICON_URI")-2] & line[line.find("\">")+1..^1])
         else:
             new_html.add(line)
-    writeFile(old_file_path[0..^6] & "_noicons.html", new_html.join("\n"))
+    writeFile(old_file_path[ .. ^6] & "_noicons.html", new_html.join("\n"))
 # -------------------------------------------------------------------
 # proc z(x: typedesc[int]): int = 0
 # proc z(x: typedesc[float]): float = 0.0
@@ -132,7 +132,7 @@ openLinks("""""")
 # joyrDl()
 # sort_hn_by_num_of_comments(r"C:\Users\Asus\Desktop\hn1.txt")
 # stripe_favicon_images(r"")
-# deduplicateFile(r"C:\Users\Asus\Desktop\tabs_firefox_181213_0330.txt")
+# deduplicateFile(r"")
 
 # echo decodeUrl("")
 # echo decode("")
@@ -166,7 +166,10 @@ openLinks("""""")
 # var t = initTable[string, int]()
 # for l in lines(r"C:\Users\Asus\Desktop\hn.txt"):
 #     let s = l.split(" - ")
-#     t.add(s[1], s[0].parseInt)
+#     if len(s) == 3:
+#         t.add(s[1] & " - " & s[2], s[0].parseInt)
+#     else:
+#         t.add(s[1], s[0].parseInt)
 # for i in toSeq(t.pairs()).sorted((x, y) => cmp(x[1], y[1])):
 #     echo i[1], " - ", i[0]
 

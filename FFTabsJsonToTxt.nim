@@ -31,8 +31,9 @@ proc getLinks(path: string): WebSites = # auto
 #             if i != j:
                 
 # echo "Enter full path:"
-let path = r"C:\Users\Asus\Desktop\.json"
-let links = getLinks(path)
+let
+    path = r"C:\Users\Asus\Desktop\.json"
+    links = getLinks(path)
 stdout.write("> ")
 var command = readLine(stdin)
 while command != "q":
@@ -59,7 +60,7 @@ while command != "q":
             # for i in links.values():
             #     for j in i:
             #         echo j.url
-            writeFile(path[0..^5] & "_links.txt", toSeq(links.values).concat.mapIt(it.url).deduplicate.join("\n"))
+            writeFile(path[0..^6] & "_links1.txt", toSeq(links.values).concat.mapIt(it.url).deduplicate.join("\n"))
         else:
             echo """
     q     - quit

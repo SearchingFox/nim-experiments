@@ -60,7 +60,7 @@ while command != "q":
             # for i in links.values():
             #     for j in i:
             #         echo j.url
-            writeFile(path[0..^6] & "_links1.txt", toSeq(links.values).concat.mapIt(it.url).deduplicate.join("\n"))
+            writeFile(path[0..^6] & "_links.txt", toSeq(links.values).concat.mapIt(it.url).deduplicate.join("\n"))
         else:
             echo """
     q     - quit

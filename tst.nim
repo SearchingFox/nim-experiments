@@ -83,7 +83,8 @@ proc sort_hn_by_num_of_comments(path: string) =
         echo k[1][0], " - ", k[0], " - ", k[1][1]
 # -------------------------------------------------------------------
 proc joyrDl(url: string) =
-    let pics = parseHtml(newHttpClient().getContent(url)).findAll("img").mapIt(it.attr("src")).filterIt("avatar" notin it and [".jpeg", ".gif", ".png", ".jpg"].any(x => it.endsWith(x)))
+    let pics = parseHtml(newHttpClient().getContent(url)).findAll("img").mapIt(it.attr("src"))
+        .filterIt("avatar" notin it and [".jpeg", ".gif", ".png", ".jpg"].any(x => it.endsWith(x)))
     echo len(pics), "\n", pics
 # -------------------------------------------------------------------
 proc stripe_favicon_images(old_file_path: string) =
@@ -126,19 +127,6 @@ proc stripe_favicon_images(old_file_path: string) =
 # writeFile(joinPath(getHomeDir(), "Desktop", "learnJP.txt"), out_file)
 # -------------------------------------------------------------------
 
-# *
-# echo get_links_only(r"")
-openLinks("""""")
-# joyrDl()
-# sort_hn_by_num_of_comments(r"C:\Users\Asus\Desktop\hn1.txt")
-# stripe_favicon_images(r"")
-# deduplicateFile(r"")
-
-# echo decodeUrl("")
-# echo decode("")
-# download_links()
-# randomize()
-# echo rand(39)
 # var sav = newSeq[string]()
 # for i in lines(r"D:\Documents\35.txt"):
 #     if i != "":
@@ -193,16 +181,27 @@ openLinks("""""")
 # writeFile("", ss)#join(s, "\n"))
 # # echo len(dds)
 
+# var t = initTable[string, int]()
+# for l in lines(r"C:\Users\Asus\Desktop\tst2.txt"):
+#     # let s = l.split(" - ")
+#     # var s = t.mgetOrPut(l, 0) + 1
+#     if not t.hasKey(l):
+#         t[l] = 1
+#     else:
+#         t[l] += 1
+# for i in toSeq(t.pairs()).sorted((x, y) => cmp(x[1], y[1])):
+#     echo i[1], " - ", i[0]
 
-# let url = "https://thehentaiworld.com/tag/liangxing/page/2/"
-# let folder = "D:\\LiangXing2\\"
-# let pics = parseHtml(newHttpClient().getContent(url)).findAll("a").mapIt(it.attr("href")).filterIt("hentai-images" in it).mapIt(parseHtml(newHttpClient().getContent(it)).findAll("a").mapIt(it.attr("href")).filterIt("wp-content" in it)).concat
-# echo len(pics)
-# var c = 0
-# for l in pics:
-#     let fileName = folder & $c & "_" & l.split("/")[^1]
-#     var f = newFileStream(fileName, fmWrite)
-#     if not f.isNil:
-#         f.write newHttpClient().getContent(l)
-#     c += 1
-# echo len(pics), "\n", pics
+# ------------------------------------------------------------
+# echo get_links_only(r"")
+openLinks("""""")
+# joyrDl()
+# sort_hn_by_num_of_comments(r"C:\Users\Asus\Desktop\hn5.txt")
+# stripe_favicon_images(r"")
+# deduplicateFile(r"")
+
+# echo decodeUrl("")
+# echo decode("")
+# download_links()
+# randomize()
+# echo rand(39)

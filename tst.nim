@@ -1,5 +1,5 @@
 import os, strutils, browsers, sequtils, sets, json, ospaths, sugar, uri, base64
-import htmlparser, httpclient, xmltree, algorithm, tables, streams, random
+import htmlparser, httpclient, xmltree, algorithm, tables, streams, random, md5
 
 proc getFoldersSize(path: string) =
     var size: BiggestInt = 0
@@ -96,6 +96,45 @@ proc stripe_favicon_images(old_file_path: string) =
             new_html.add(line)
     writeFile(old_file_path[ .. ^6] & "_noicons.html", new_html.join("\n"))
 # -------------------------------------------------------------------
+proc sort_hn_file_by_comments(path: string) =
+    var t = initTable[string, int]()
+    for l in lines(path):
+        let s = l.split(" - ")
+        if len(s) == 3:
+            t.add(s[1] & " - " & s[2], s[0].parseInt)
+        else:
+            t.add(s[1], s[0].parseInt)
+    for i in toSeq(t.pairs()).sorted((x, y) => cmp(x[1], y[1])):
+        echo i[1], " - ", i[0]
+# -------------------------------------------------------------------
+proc pikabu_get(url: string, pages = 1) =
+    var cur_url = url
+    let folder = joinPath("D:", url.split('@')[^1])
+    discard existsOrCreateDir(folder) #! discard ???
+
+    for page in 1 .. pages:
+        let page_html = newHttpClient().getContent(cur_url).parseHtml
+        let page_folder = joinPath(folder, page.intToStr)
+        discard existsOrCreateDir(page_folder) #! discard ???
+
+        for j, post_url in page_html.findAll("a").filterIt(it.attr("href").endsWith("#comments")):
+            echo j, " ", post_url.attr("href")
+            let post_html = newHttpClient().getContent(post_url.attr("href")).parseHtml
+            let post_folder = joinPath(page_folder, getMD5(post_url.attr("href")))
+            discard existsOrCreateDir(post_folder) #! diacard ???
+
+            let links = post_html.findAll("img").filterIt(it.attr("data-large-image") != "")
+            echo links.len
+            for link in links:
+                let pic_url = link.attr("data-large-image")
+                let fileName = joinPath(post_folder, pic_url.split('/')[^1])
+                if not fileName.existsFile:
+                    var f = newFileStream(fileName, fmWrite)
+                    if not f.isNil:
+                        f.write newHttpClient().getContent(pic_url)
+        
+        cur_url = url & "?page=$1" % page.intToStr
+# -------------------------------------------------------------------
 # proc z(x: typedesc[int]): int = 0
 # proc z(x: typedesc[float]): float = 0.0
 
@@ -151,16 +190,6 @@ proc stripe_favicon_images(old_file_path: string) =
 #         s.add(i)
 # writeFile(r"C:\Users\Asus\Desktop\123.txt", deduplicate(s).join("\n"))
 
-# var t = initTable[string, int]()
-# for l in lines(r"C:\Users\Asus\Desktop\hn.txt"):
-#     let s = l.split(" - ")
-#     if len(s) == 3:
-#         t.add(s[1] & " - " & s[2], s[0].parseInt)
-#     else:
-#         t.add(s[1], s[0].parseInt)
-# for i in toSeq(t.pairs()).sorted((x, y) => cmp(x[1], y[1])):
-#     echo i[1], " - ", i[0]
-
 # var links1 = toSeq(getLinks(r"").values()).concat.map(x => x.url).toSet
 # var links2 = toSeq(getLinks(r"").values()).concat.map(x => x.url).toSet
 # for i in links1 - links2:
@@ -196,12 +225,12 @@ proc stripe_favicon_images(old_file_path: string) =
 # echo get_links_only(r"")
 openLinks("""""")
 # joyrDl()
-# sort_hn_by_num_of_comments(r"C:\Users\Asus\Desktop\hn5.txt")
+# sort_hn_file_by_comments(r"C:\Users\Asus\Desktop\hn1.txt")
+# sort_hn_by_num_of_comments(r"C:\Users\Asus\Desktop\hn6.txt")
 # stripe_favicon_images(r"")
 # deduplicateFile(r"")
 
 # echo decodeUrl("")
 # echo decode("")
 # download_links()
-# randomize()
-# echo rand(39)
+randomize(); echo rand(39)

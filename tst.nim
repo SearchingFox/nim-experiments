@@ -1,4 +1,4 @@
-import os, strutils, browsers, sequtils, sets, json, ospaths, sugar, uri, base64
+import os, strutils, browsers, sequtils, sets, json, sugar, uri, base64
 import htmlparser, httpclient, xmltree, algorithm, tables, streams, random, md5
 
 proc getFoldersSize(path: string) =
@@ -16,8 +16,9 @@ proc deduplicateLines(liness: string) =
 # -------------------------------------------------------------------
 proc compareFiles(file1: string, file2: string) =
     let
-        f1 = readFile(file1).splitLines.toSet
-        f2 = readFile(file2).splitLines.toSet
+        f1 = readFile(file1).splitLines.toHashSet
+        f2 = readFile(file2).splitLines.toHashSet
+    # TODO: don't write part if there are no intersections
     var outFile = toSeq(items(f1 - f2)).join("\n") & "\n" & repeat('-', 80) & "\n" & toSeq(items(f2 - f1)).join("\n")
     writeFile(joinPath(getHomeDir(), "Desktop", "out.txt"), outFile)
 # -------------------------------------------------------------------
@@ -121,7 +122,7 @@ proc pikabu_get(url: string, pages = 1) =
             echo j, " ", post_url.attr("href")
             let post_html = newHttpClient().getContent(post_url.attr("href")).parseHtml
             let post_folder = joinPath(page_folder, getMD5(post_url.attr("href")))
-            discard existsOrCreateDir(post_folder) #! diacard ???
+            discard existsOrCreateDir(post_folder) #! discard ???
 
             let links = post_html.findAll("img").filterIt(it.attr("data-large-image") != "")
             echo links.len
@@ -135,16 +136,16 @@ proc pikabu_get(url: string, pages = 1) =
         
         cur_url = url & "?page=$1" % page.intToStr
 # -------------------------------------------------------------------
-# proc z(x: typedesc[int]): int = 0
-# proc z(x: typedesc[float]): float = 0.0
+proc z(x: typedesc[int]): int = 0
+proc z(x: typedesc[float]): float = 0.0
+proc test_monoid() =
+    type Monoid = concept x, y
+        x + y is type(x)
+        z(type(x)) is type(x)
 
-# type Monoid = concept x, y
-# x + y is type(x)
-# z(type(x)) is type(x)
-
-# echo "int is monoid -> ", 3 is Monoid
-# let x = 3
-# echo z(type(x)) # prints 0
+    echo "int is monoid -> ", 3 is Monoid
+    let x = 3
+    echo z(type(x)) # prints 0
 # -------------------------------------------------------------------
 # echo lc[x | (x <- 1..10, x mod 2 == 0), int]
 # -------------------------------------------------------------------
@@ -233,4 +234,8 @@ openLinks("""""")
 # echo decodeUrl("")
 # echo decode("")
 # download_links()
-randomize(); echo rand(39)
+# randomize(); echo rand(39)
+
+# for l in lines(r"C:\Users\Asus\Desktop\Imp.org"):
+#     if l.len > 0 and not l.startsWith("* "):
+#         echo l

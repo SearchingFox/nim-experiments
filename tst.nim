@@ -88,11 +88,11 @@ proc joyrDl(url: string) =
         .filterIt("avatar" notin it and [".jpeg", ".gif", ".png", ".jpg"].any(x => it.endsWith(x)))
     echo len(pics), "\n", pics
 # -------------------------------------------------------------------
-proc stripe_favicon_images(old_file_path: string) =
+proc strip_favicon_images(old_file_path: string) =
     var new_html = newSeq[string]()
     for line in lines(old_file_path):
         if line.find("ICON_URI") > 0:
-            new_html.add(line[0 .. line.find("ICON_URI")-2] & line[line.find("\">")+1..^1])
+            new_html.add(line[0..line.find("ICON_URI")-2] & line[line.find("\">")+1..^1])
         else:
             new_html.add(line)
     writeFile(old_file_path[ .. ^6] & "_noicons.html", new_html.join("\n"))

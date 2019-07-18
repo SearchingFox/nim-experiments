@@ -1,5 +1,6 @@
-import os, strutils, browsers, sequtils, sets, json, sugar, uri, base64
-import htmlparser, httpclient, xmltree, algorithm, tables, streams, random, md5
+import os, strutils, browsers, sequtils, sets, json, sugar, uri, base64,
+    htmlparser, httpclient, xmltree, algorithm, tables, streams, random,
+    md5, macros, osproc
 
 proc getFoldersSize(path: string) =
     var size: BiggestInt = 0
@@ -8,11 +9,10 @@ proc getFoldersSize(path: string) =
     echo size
 # -------------------------------------------------------------------
 proc openLinks (inp: string) =
-    for l in inp.splitLines.filterIt(it != ""): openDefaultBrowser(l)
+    for l in inp.splitLines.filterIt(it != ""): openDefaultBrowser l
 # -------------------------------------------------------------------
 proc deduplicateLines(liness: string) =
-    for i in liness.splitLines.deduplicate():
-        echo i
+    for i in liness.splitLines.deduplicate: echo i
 # -------------------------------------------------------------------
 proc compareFiles(file1: string, file2: string) =
     let
@@ -147,6 +147,35 @@ proc test_monoid() =
     let x = 3
     echo z(type(x)) # prints 0
 # -------------------------------------------------------------------
+proc dedup_save_order(file_path: string) =
+    var t = newSeq[string]()
+    for i in lines(file_path):
+        if len(i) != 0:
+            if i notin t:
+                t.add(i)
+            else:
+                echo i
+        else:
+            t.add(i)
+    writeFile(file_path[ .. ^5] & "_nodup.txt", t.join("\n"))
+# -------------------------------------------------------------------
+proc enqueue_ytdl() =
+    let links = """
+https://www.youtube.com/watch?v=iGiHa3GtQhM
+https://www.twitch.tv/videos/451307155
+https://www.twitch.tv/videos/448285685"""
+    for i in links.split_lines:
+        let t = execCmd("youtube-dl.exe " & i)  # startProcess, bunches of startProcesses
+        echo t
+# -------------------------------------------------------------------
+# macro test(n: varargs[untyped]): untyped =
+#     for x in n.children:
+#         echo x.repr
+
+# discard test(1)
+# discard test(1,2)
+# discard test(1,b=2)
+# -------------------------------------------------------------------
 # echo lc[x | (x <- 1..10, x mod 2 == 0), int]
 # -------------------------------------------------------------------
 # var outStr = ""
@@ -158,22 +187,13 @@ proc test_monoid() =
 # writeFile("", outStr)
 # -------------------------------------------------------------------
 # let
-    # lines_jp = readFile("D:\\32456547587\\scripts_va11halla\\jp\\").splitLines()
-    # lines_eng = readFile("D:\\32456547587\\scripts_va11halla\\eng\\").splitLines()
+    # lines_jp = readFile("D:\\32456547587\\scripts_va11halla\\jp\\").splitLines
+    # lines_eng = readFile("D:\\32456547587\\scripts_va11halla\\eng\\").splitLines
 # echo high(lines_eng)
 # var out_file = ""
 # for l in low(lines_jp)..high(lines_jp):
 #     out_file &= lines_jp[l] & "\n" & lines_eng[l] & "\n\n"
 # writeFile(joinPath(getHomeDir(), "Desktop", "learnJP.txt"), out_file)
-# -------------------------------------------------------------------
-
-# var sav = newSeq[string]()
-# for i in lines(r"D:\Documents\35.txt"):
-#     if i != "":
-#         if i notin sav:
-#             sav.add(i)
-#         else:
-#             echo i
 
 # var t = newSeq[string]()
 # for i in lines(r"C:\Users\Asus\Desktop\ddd.txt"):
@@ -228,13 +248,14 @@ openLinks("""""")
 # joyrDl()
 # sort_hn_file_by_comments(r"C:\Users\Asus\Desktop\hn1.txt")
 # sort_hn_by_num_of_comments(r"C:\Users\Asus\Desktop\hn6.txt")
-# stripe_favicon_images(r"")
+# strip_favicon_images()
 # deduplicateFile(r"")
 
 # echo decodeUrl("")
 # echo decode("")
 # download_links()
 # randomize(); echo rand(39)
+# dedup_save_order(r"D:\Documents\35 - Copy.txt")
 
 # for l in lines(r"C:\Users\Asus\Desktop\Imp.org"):
 #     if l.len > 0 and not l.startsWith("* "):

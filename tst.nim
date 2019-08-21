@@ -1,6 +1,6 @@
 import os, strutils, browsers, sequtils, sets, json, sugar, uri, base64,
     htmlparser, httpclient, xmltree, algorithm, tables, streams, random,
-    md5, macros, osproc
+    md5, macros, osproc, oids, times
 
 proc getFoldersSize(path: string) =
     var size: BiggestInt = 0
@@ -29,7 +29,7 @@ proc deleteLinesFromFile(filePath: string, linesSeq: seq[string]) =
 proc deduplicateFile(filePath: string) =
     writeFile(filePath, readFile(filePath).splitLines.deduplicate.join("\n"))
 # -------------------------------------------------------------------
-proc concat_notes(folder: string) =
+proc concatNotes(folder: string) =
     var outSeq = newSeq[string]()
     for _, file in walkDir(joinPath(getHomeDir(), "Desktop", folder)):
         outSeq.add(readFile(file).splitLines[^1])
@@ -52,7 +52,7 @@ proc arrow() =
     var myf : fptr = f
     echo myf(0)
 # -------------------------------------------------------------------
-proc download_links() =
+proc downloadLinks() =
     for i in 126..130:
         let folder = "D:\\"
         let pic_url = "" & $i & ".jpg"
@@ -64,12 +64,12 @@ proc download_links() =
         echo "Saved ", fileName
         # sleep(500)
 # -------------------------------------------------------------------
-proc get_links_only(file_path: string): seq[string] =
+proc getLinksOnly(file_path: string): seq[string] =
     for l in lines(file_path):
         if "<A" in l:
             result.add(l[l.find('"')+1 ..< l.find("\" A")])
 # -------------------------------------------------------------------
-proc sort_hn_by_num_of_comments(path: string) =
+proc getCommentsForHnLinks(path: string) =
     var r = initTable[string, (int, string)]()
     for line in lines(path):
         try:
@@ -83,12 +83,13 @@ proc sort_hn_by_num_of_comments(path: string) =
     for k in toSeq(r.pairs).sorted((x, y) => cmp(x[1][0], y[1][0])):
         echo k[1][0], " - ", k[0], " - ", k[1][1]
 # -------------------------------------------------------------------
-proc joyrDl(url: string) =
-    let pics = parseHtml(newHttpClient().getContent(url)).findAll("img").mapIt(it.attr("src"))
+proc joyGet(url: string) =
+    # ? TODO: Add dimensions and file size restrictions
+    let pics = parseHtml(newHttpClient().getContent url).findAll("img").mapIt(it.attr "src")
         .filterIt("avatar" notin it and [".jpeg", ".gif", ".png", ".jpg"].any(x => it.endsWith(x)))
     echo len(pics), "\n", pics
 # -------------------------------------------------------------------
-proc strip_favicon_images(old_file_path: string) =
+proc stripFaviconImages(old_file_path: string) =
     var new_html = newSeq[string]()
     for line in lines(old_file_path):
         if line.find("ICON_URI") > 0:
@@ -97,7 +98,7 @@ proc strip_favicon_images(old_file_path: string) =
             new_html.add(line)
     writeFile(old_file_path[ .. ^6] & "_noicons.html", new_html.join("\n"))
 # -------------------------------------------------------------------
-proc sort_hn_file_by_comments(path: string) =
+proc sortHnFileByCommentsNum(path: string) =
     var t = initTable[string, int]()
     for l in lines(path):
         let s = l.split(" - ")
@@ -108,7 +109,7 @@ proc sort_hn_file_by_comments(path: string) =
     for i in toSeq(t.pairs()).sorted((x, y) => cmp(x[1], y[1])):
         echo i[1], " - ", i[0]
 # -------------------------------------------------------------------
-proc pikabu_get(url: string, pages = 1) =
+proc pikabuGet(url: string, pages = 1) =
     var cur_url = url
     let folder = joinPath("D:", url.split('@')[^1])
     discard existsOrCreateDir(folder) #! discard ???
@@ -138,7 +139,8 @@ proc pikabu_get(url: string, pages = 1) =
 # -------------------------------------------------------------------
 proc z(x: typedesc[int]): int = 0
 proc z(x: typedesc[float]): float = 0.0
-proc test_monoid() =
+
+proc testMonoid() =
     type Monoid = concept x, y
         x + y is type(x)
         z(type(x)) is type(x)
@@ -147,7 +149,7 @@ proc test_monoid() =
     let x = 3
     echo z(type(x)) # prints 0
 # -------------------------------------------------------------------
-proc dedup_save_order(file_path: string) =
+proc deduplicateAndSaveOrder(file_path: string) =
     var t = newSeq[string]()
     for i in lines(file_path):
         if len(i) != 0:
@@ -159,7 +161,7 @@ proc dedup_save_order(file_path: string) =
             t.add(i)
     writeFile(file_path[ .. ^5] & "_nodup.txt", t.join("\n"))
 # -------------------------------------------------------------------
-proc enqueue_ytdl() =
+proc queueYtdl() =
     let links = """
 https://www.youtube.com/watch?v=iGiHa3GtQhM
 https://www.twitch.tv/videos/451307155
@@ -167,6 +169,26 @@ https://www.twitch.tv/videos/448285685"""
     for i in links.split_lines:
         let t = execCmd("youtube-dl.exe " & i)  # startProcess, bunches of startProcesses
         echo t
+# -------------------------------------------------------------------
+proc kgGet(url: string) =
+    if "gallery-full" notin url:
+        echo "Needs full gallery url"
+        return
+    
+    let folder = joinPath("D:", url.split('/')[^3] & "_" & url.split('/')[^2])
+    if existsOrCreateDir(folder):
+        echo "Directory already exists"
+        return
+    
+    let pics = newHttpClient().getContent(url).parseHtml
+                .findAll("a").mapIt(it.attr("href")).filterIt(it.endsWith(".jpg"))[1..^1]
+    echo pics.len
+
+    for p in pics:
+        let fileName = joinPath(folder, p.split('/')[^1])
+        if not fileName.existsFile: #? delete line
+            var f = newFileStream(fileName, fmWrite)
+            if not f.isNil: f.write newHttpClient().getContent(p)
 # -------------------------------------------------------------------
 # macro test(n: varargs[untyped]): untyped =
 #     for x in n.children:
@@ -206,10 +228,10 @@ https://www.twitch.tv/videos/448285685"""
 #         echo l
 
 # var s = newSeq[string]()
-# for i in lines(r"C:\Users\Asus\Desktop\Bookmarks_181004_2003.org"):
-#     if i != "" and not i.startsWith("* "):
-#         s.add(i)
-# writeFile(r"C:\Users\Asus\Desktop\123.txt", deduplicate(s).join("\n"))
+# for l in lines(r"C:\Users\Asus\Desktop\.org"):
+#     if l.len > 0 and not l.startsWith("* "):
+#         s.add(l)
+# writeFile(r"C:\Users\Asus\Desktop\.txt", s.deduplicate.join("\n"))
 
 # var links1 = toSeq(getLinks(r"").values()).concat.map(x => x.url).toSet
 # var links2 = toSeq(getLinks(r"").values()).concat.map(x => x.url).toSet
@@ -232,7 +254,7 @@ https://www.twitch.tv/videos/448285685"""
 # # echo len(dds)
 
 # var t = initTable[string, int]()
-# for l in lines(r"C:\Users\Asus\Desktop\tst2.txt"):
+# for l in lines(r""):
 #     # let s = l.split(" - ")
 #     # var s = t.mgetOrPut(l, 0) + 1
 #     if not t.hasKey(l):
@@ -242,21 +264,34 @@ https://www.twitch.tv/videos/448285685"""
 # for i in toSeq(t.pairs()).sorted((x, y) => cmp(x[1], y[1])):
 #     echo i[1], " - ", i[0]
 
+# let tt = cpuTime()
+# proc get_from_html(file_path: string): seq[string] =
+#     for line in read_file(file_path).split_lines:
+#         if line.strip.starts_with("<DT><A"):
+#             result.add(line[line.find("\"")+1 ..< line.rfind("\" A")])
+
+#     return result.deduplicate
+
+# let files = @[r"*.txt"]
+# for l in readFile(r"").split_lines:
+#     for f in files:
+#         if l in readFile(f).split_lines:
+#             echo l
 # ------------------------------------------------------------
-# echo get_links_only(r"")
-openLinks("""""")
-# joyrDl()
-# sort_hn_file_by_comments(r"C:\Users\Asus\Desktop\hn1.txt")
-# sort_hn_by_num_of_comments(r"C:\Users\Asus\Desktop\hn6.txt")
-# strip_favicon_images()
+# echo getLinksOnly(r"")
+# openLinks("""""")
+# findEmptyFolders(r"C:\Users\Asus\Desktop\f")
+# joyDl()
+# sortHnFileByCommentsNum(r"C:\Users\Asus\Desktop\hn1.txt")
+# getCommentsForHnLinks(r"C:\Users\Asus\Desktop\hn6.txt")
+# stripFaviconImages()
 # deduplicateFile(r"")
+# downloadLinks()
+# dedupSaveOrder(r"")
 
 # echo decodeUrl("")
 # echo decode("")
-# download_links()
 # randomize(); echo rand(39)
-# dedup_save_order(r"D:\Documents\35 - Copy.txt")
+# echo genOid()
 
-# for l in lines(r"C:\Users\Asus\Desktop\Imp.org"):
-#     if l.len > 0 and not l.startsWith("* "):
-#         echo l
+kg_get("")

@@ -69,25 +69,11 @@ proc getLinksOnly(file_path: string): seq[string] =
         if "<A" in l:
             result.add(l[l.find('"')+1 ..< l.find("\" A")])
 # -------------------------------------------------------------------
-proc getCommentsForHnLinks(path: string) =
-    var r = initTable[string, (int, string)]()
-    for line in lines(path):
-        try:
-            let json = parseJson(newHttpClient()
-                .getContent("https://hacker-news.firebaseio.com/v0/item/$1.json" % line.split('=')[^1]))
-            r.add(line, (json["descendants"].getInt, json["title"].getStr))
-            sleep(100)
-        except KeyError: #! Change to something else
-            echo line
-    
-    for k in toSeq(r.pairs).sorted((x, y) => cmp(x[1][0], y[1][0])):
-        echo k[1][0], " - ", k[0], " - ", k[1][1]
-# -------------------------------------------------------------------
 proc joyGet(url: string) =
     # ? TODO: Add dimensions and file size restrictions
     let pics = parseHtml(newHttpClient().getContent url).findAll("img").mapIt(it.attr "src")
         .filterIt("avatar" notin it and [".jpeg", ".gif", ".png", ".jpg"].any(x => it.endsWith(x)))
-    echo len(pics), "\n", pics
+    echo pics.len, "\n", pics
 # -------------------------------------------------------------------
 proc stripFaviconImages(old_file_path: string) =
     var new_html = newSeq[string]()
@@ -97,17 +83,6 @@ proc stripFaviconImages(old_file_path: string) =
         else:
             new_html.add(line)
     writeFile(old_file_path[ .. ^6] & "_noicons.html", new_html.join("\n"))
-# -------------------------------------------------------------------
-proc sortHnFileByCommentsNum(path: string) =
-    var t = initTable[string, int]()
-    for l in lines(path):
-        let s = l.split(" - ")
-        if len(s) == 3:
-            t.add(s[1] & " - " & s[2], s[0].parseInt)
-        else:
-            t.add(s[1], s[0].parseInt)
-    for i in toSeq(t.pairs()).sorted((x, y) => cmp(x[1], y[1])):
-        echo i[1], " - ", i[0]
 # -------------------------------------------------------------------
 proc pikabuGet(url: string, pages = 1) =
     var cur_url = url
@@ -283,8 +258,8 @@ proc kgGet(url: string) =
 # findEmptyFolders(r"C:\Users\Asus\Desktop\f")
 # joyDl()
 # sortHnFileByCommentsNum(r"C:\Users\Asus\Desktop\hn1.txt")
-# getCommentsForHnLinks(r"C:\Users\Asus\Desktop\hn6.txt")
-# stripFaviconImages()
+# getCommentsForHnLinks(r"")
+# stripFaviconImages(r"")
 # deduplicateFile(r"")
 # downloadLinks()
 # dedupSaveOrder(r"")
@@ -294,4 +269,60 @@ proc kgGet(url: string) =
 # randomize(); echo rand(39)
 # echo genOid()
 
-kg_get("")
+# kg_get("")
+
+
+# import nre except toSeq, options
+# proc gen_all_pages(inp: seq[string]) =
+#     # ? change deduplicate to [0..^2]
+#     let all = inp.mapIt(it.find(re"page=[0-9]+")).filterIt(it.isSome).map(get).mapIt(it.str.split("=")[1].parseInt).sort
+
+
+# let html = newHttpClient().getContent("https://e-hentai.org/")
+# let t = html.parseHtml.findAll("table").filterIt(it.attr("class") == "ptt")[0].findAll("a").mapIt(it.attr("href"))
+# echo t.join("\n")
+# gen_all_pages(t)
+
+# proc get_from_folder(path: string): seq[string] =
+#     for k, path in walkDir(path):
+#         result.add readFile(path).splitLines
+
+#     return result.deduplicate
+
+# let stri = """"""
+
+# let t = get_from_folder(r"C:\Users\Asus\Desktop\firefox_resolve\hn")
+# for i in stri.splitLines:
+#     for ty in t:
+#         if i in ty:
+#             echo i
+
+# let
+#     sourceF = readFile(r"C:\Users\Asus\Desktop\firefox_resolve\now.txt").splitLines
+#     testF = r"C:\Users\Asus\Desktop\firefox_resolve\resolve3_uniq_links.txt"
+# for l in lines(testF):
+#     if l notin sourceF:
+#         echo l
+
+proc get_from_html(file_path: string): seq[string] =
+    for line in lines(file_path):
+        if "<DT><A" in line:
+            result.add(line[line.find("\"")+1 ..< line.find("\" A")])
+
+    return result.deduplicate
+
+    
+proc t1(file_path: string): seq[XmlAttributes] =
+    return readFile(file_path).parseHtml.findAll("a").mapIt(it.attrs)
+
+let tt = cpuTime()
+let a = get_from_html(r"C:\Users\Asus\Desktop\bookmarks_firefox_190907_0414.html")
+echo a.len
+echo a[0..9]
+echo cpuTime() - tt
+
+let ttt = cpuTime()
+let b = t1(r"C:\Users\Asus\Desktop\bookmarks_firefox_190907_0414.html")
+echo b.len
+echo b[1000..1009]
+echo cpuTime() - ttt

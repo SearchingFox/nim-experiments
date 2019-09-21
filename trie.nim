@@ -31,6 +31,8 @@ proc printTrie(t: Trie) =
     
     printHelper(t.root)
 
+# proc starts_with()
+
 var u = Node(letter: 'u', children: newSeq[Node]())
 var n = Node(letter: 'a', children: @[u])
 var t = Trie(root: n)

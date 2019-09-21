@@ -165,6 +165,13 @@ proc kgGet(url: string) =
             var f = newFileStream(fileName, fmWrite)
             if not f.isNil: f.write newHttpClient().getContent(p)
 # -------------------------------------------------------------------
+proc cmpFiles(sourceF: string, testF: string) =
+    let t = readFile(sourceF).splitLines
+    var s = newSeq[string]()
+    for l in lines(testF):
+        if l notin t: s.add(l)
+        # else: echo l
+    writeFile(r"C:\Users\Asus\Desktop\ttt3.txt", s.join("\n"))
 # macro test(n: varargs[untyped]): untyped =
 #     for x in n.children:
 #         echo x.repr
@@ -270,59 +277,4 @@ proc kgGet(url: string) =
 # echo genOid()
 
 # kg_get("")
-
-
-# import nre except toSeq, options
-# proc gen_all_pages(inp: seq[string]) =
-#     # ? change deduplicate to [0..^2]
-#     let all = inp.mapIt(it.find(re"page=[0-9]+")).filterIt(it.isSome).map(get).mapIt(it.str.split("=")[1].parseInt).sort
-
-
-# let html = newHttpClient().getContent("https://e-hentai.org/")
-# let t = html.parseHtml.findAll("table").filterIt(it.attr("class") == "ptt")[0].findAll("a").mapIt(it.attr("href"))
-# echo t.join("\n")
-# gen_all_pages(t)
-
-# proc get_from_folder(path: string): seq[string] =
-#     for k, path in walkDir(path):
-#         result.add readFile(path).splitLines
-
-#     return result.deduplicate
-
-# let stri = """"""
-
-# let t = get_from_folder(r"C:\Users\Asus\Desktop\firefox_resolve\hn")
-# for i in stri.splitLines:
-#     for ty in t:
-#         if i in ty:
-#             echo i
-
-# let
-#     sourceF = readFile(r"C:\Users\Asus\Desktop\firefox_resolve\now.txt").splitLines
-#     testF = r"C:\Users\Asus\Desktop\firefox_resolve\resolve3_uniq_links.txt"
-# for l in lines(testF):
-#     if l notin sourceF:
-#         echo l
-
-proc get_from_html(file_path: string): seq[string] =
-    for line in lines(file_path):
-        if "<DT><A" in line:
-            result.add(line[line.find("\"")+1 ..< line.find("\" A")])
-
-    return result.deduplicate
-
-    
-proc t1(file_path: string): seq[XmlAttributes] =
-    return readFile(file_path).parseHtml.findAll("a").mapIt(it.attrs)
-
-let tt = cpuTime()
-let a = get_from_html(r"C:\Users\Asus\Desktop\bookmarks_firefox_190907_0414.html")
-echo a.len
-echo a[0..9]
-echo cpuTime() - tt
-
-let ttt = cpuTime()
-let b = t1(r"C:\Users\Asus\Desktop\bookmarks_firefox_190907_0414.html")
-echo b.len
-echo b[1000..1009]
-echo cpuTime() - ttt
+# cmpFiles()

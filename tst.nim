@@ -172,6 +172,14 @@ proc cmpFiles(sourceF: string, testF: string) =
         if l notin t: s.add(l)
         # else: echo l
     writeFile(r"C:\Users\Asus\Desktop\ttt3.txt", s.join("\n"))
+# -------------------------------------------------------------------
+proc moveToFoldersByExtension(path: string) =
+    for k, p in walkDir(path):
+        if k == pcFile:
+            var (dir, name, ext) = p.splitFile
+            discard existsOrCreateDir(joinPath(path, ext[1..^1]))
+            moveFile(p, joinPath(path, ext[1..^1], name.addFileExt(ext)))
+# -------------------------------------------------------------------
 # macro test(n: varargs[untyped]): untyped =
 #     for x in n.children:
 #         echo x.repr
@@ -278,3 +286,4 @@ proc cmpFiles(sourceF: string, testF: string) =
 
 # kg_get("")
 # cmpFiles()
+# moveToFoldersByExtension("")

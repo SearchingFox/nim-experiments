@@ -31,34 +31,42 @@ proc get_from_org(file_path: string): seq[string] =
 
     return result.deduplicate
 
-proc delete_existing_in_bookmarks(ls: seq[string]): seq[string] = #(file_path: string) = #, f=True):
-    let t1 = cpuTime()
-    let tabs = if exists_file(r"C:\Users\Asus\Desktop\json_tabs_cache.txt"):
-            read_file(r"C:\Users\Asus\Desktop\json_tabs_cache.txt").split_lines
-        else:
-            # get_from_json r"C:\Users\Asus\Desktop\Sessions_2019-08-24_07-14-18.json"
-            get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\tabs"
-    echo "folder time: ", cpuTime() - t1
+proc delete_existing_in_bookmarks(ls: seq[string]): seq[string] =
+    # let t1 = cpuTime()
+    let tabs = get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\tabs"
+    # if exists_file(r"C:\Users\Asus\Desktop\json_tabs_cache.txt"):
+    #         read_file(r"C:\Users\Asus\Desktop\json_tabs_cache.txt").split_lines
+    #     else:
+    # echo "folder time: ", cpuTime() - t1
 
-    let t2 = cpuTime()
-    let bookmarks = if exists_file(r"C:\Users\Asus\Desktop\bookmarks_cache.txt"):
+    let
+        t2 = cpuTime()
+        html_file = toSeq(walkFiles(r"C:\Users\Asus\Desktop\bookmarks_firefox_*.html")).sorted()[^1]
+        bookmarks = if exists_file(r"C:\Users\Asus\Desktop\bookmarks_cache.txt"):
             read_file(r"C:\Users\Asus\Desktop\bookmarks_cache.txt").split_lines
         else:
-            get_from_html r"C:\Users\Asus\Desktop\bookmarks_firefox_190831_1517_noicons.html"
+            get_from_html html_file
     echo "html time: ", cpuTime() - t2
 
     let
         t35 = readFile(r"D:\Documents\35 - Copy.txt").split_lines
-        all_links = bookmarks.concat(tabs).concat(t35).mapIt(if it.startswith("http"): it.split("://")[1] else: it)
+        all_links = bookmarks.concat(tabs).concat(t35).mapIt(a(it))
         t3 = cpuTime()
-    echo "all links: ", all_links.len
-    
+
     var
         not_exist = newSeq[string]()
         exist     = newSeq[string]()
+        c = 0
 
     for line in ls:
-        let tmp = if line.startswith("http"): line.split("://")[1] else: line
+        c += 1
+
+        var tmp: string
+        try:
+            tmp = if line.startswith("http"): line.split("://")[1] else: line
+        except Exception:
+            echo c, line
+            tmp = line
         for i in all_links:
             if tmp.strip == i:
                 exist.add(line)
@@ -67,8 +75,8 @@ proc delete_existing_in_bookmarks(ls: seq[string]): seq[string] = #(file_path: s
             not_exist.add(line)
     echo "processing time: ", cpuTime() - t3
 
-    if exist.len < 80:
-        echo "\n", exist
+    # if exist.len < 80:
+    echo "\n", exist
     echo "\nnotin bookmarks: ", not_exist.len,
          "\nin bookmarks:    ", exist.len
 
@@ -91,4 +99,4 @@ proc main(file_path: string) =
 if paramCount() > 1 and paramStr(1) == "-c":
     main(paramStr(2))
 else:
-    main(r"C:\Users\Asus\Desktop\firefox_resolve\Sessions_2019-06-18_04-24-55_pure.txt")
+    main(r"C:\Users\Asus\Desktop\")

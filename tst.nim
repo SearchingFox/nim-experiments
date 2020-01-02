@@ -35,13 +35,15 @@ proc concatNotes(folder: string) =
         outSeq.add(readFile(file).splitLines[^1])
     writeFile(joinPath(getHomeDir(), "Desktop", folder & ".txt"), outSeq.deduplicate.join("\n"))
 # -------------------------------------------------------------------
-# !NotImplemented
 proc findEmptyFolders(path: string) =
-    for file in walkDirRec(path):
-        echo file
+    for k, dir in walkDir(path):
+        if k == pcDir:
+            if toSeq(walkDirRec(dir)) == @[]:
+                removeDir dir
+        # echo k, " ", dir
 # -------------------------------------------------------------------
 proc prettyPrint(file: string) =
-    writeFile(file, readFile(file).parseJson.pretty)
+    writeFile(file, readFile(file).parseJson.pretty) 
 # -------------------------------------------------------------------
 proc arrow() =
     type fptr = (int -> int)
@@ -106,9 +108,10 @@ proc pikabuGet(url: string, pages = 1) =
                 let pic_url = link.attr("data-large-image")
                 let fileName = joinPath(post_folder, pic_url.split('/')[^1])
                 if not fileName.existsFile:
-                    var f = newFileStream(fileName, fmWrite)
-                    if not f.isNil:
-                        f.write newHttpClient().getContent(pic_url)
+                    newHttpClient().downloadFile(pic_url, fileName)
+                    # var f = newFileStream(fileName, fmWrite)
+                    # if not f.isNil:
+                    #     f.write newHttpClient().getContent(pic_url)
         
         cur_url = url & "?page=$1" % page.intToStr
 # -------------------------------------------------------------------
@@ -150,11 +153,11 @@ proc kgGet(url: string) =
         echo "Needs full gallery url"
         return
     
-    let folder = joinPath("D:", url.split('/')[^3] & "_" & url.split('/')[^2])
+    let folder = joinPath("D:\\Downloadss", url.split('/')[^3] & "_" & url.split('/')[^2])
     if existsOrCreateDir(folder):
         echo "Directory already exists"
         return
-    
+
     let pics = newHttpClient().getContent(url).parseHtml
                 .findAll("a").mapIt(it.attr("href")).filterIt(it.endsWith(".jpg"))[1..^1]
     echo pics.len
@@ -162,8 +165,9 @@ proc kgGet(url: string) =
     for p in pics:
         let fileName = joinPath(folder, p.split('/')[^1])
         if not fileName.existsFile: #? delete line
-            var f = newFileStream(fileName, fmWrite)
-            if not f.isNil: f.write newHttpClient().getContent(p)
+            newHttpClient().downloadFile(p, fileName)
+            # var f = newFileStream(fileName, fmWrite)
+            # if not f.isNil: f.write newHttpClient().getContent(p)
 # -------------------------------------------------------------------
 proc cmpFiles(sourceF: string, testF: string) =
     let t = readFile(sourceF).splitLines
@@ -177,8 +181,12 @@ proc moveToFoldersByExtension(path: string) =
     for k, p in walkDir(path):
         if k == pcFile:
             var (dir, name, ext) = p.splitFile
-            discard existsOrCreateDir(joinPath(path, ext[1..^1]))
-            moveFile(p, joinPath(path, ext[1..^1], name.addFileExt(ext)))
+            echo ext
+            try:
+                discard existsOrCreateDir(joinPath(path, ext[1..^1]))
+                moveFile(p, joinPath(path, ext[1..^1], name.addFileExt(ext)))
+            except Exception:
+                echo "Nope:", name, ext
 # -------------------------------------------------------------------
 # macro test(n: varargs[untyped]): untyped =
 #     for x in n.children:
@@ -286,4 +294,4 @@ proc moveToFoldersByExtension(path: string) =
 
 # kg_get("")
 # cmpFiles()
-# moveToFoldersByExtension("")
+# moveToFoldersByExtension(r"C:\Users\Asus\Desktop\f")

@@ -44,25 +44,24 @@ proc a(i: string): string =
     return result
 
 proc find_existing_in_bookmarks(ls: seq[string]): seq[string] =
-    # let t1 = cpuTime()
     let tabs = get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\tabs"
-    # if exists_file(r"C:\Users\Asus\Desktop\json_tabs_cache.txt"):
-    #         read_file(r"C:\Users\Asus\Desktop\json_tabs_cache.txt").split_lines
-    #     else:
-    # echo "folder time: ", cpuTime() - t1
-
     let
         t2 = cpuTime()
-        html_file = toSeq(walkFiles(r"C:\Users\Asus\Desktop\bookmarks_firefox_*.html")).sorted()[^1]
+        html_file = to_seq(walk_files(r"C:\Users\Asus\Desktop\bookmarks_firefox_*.html")).sorted()[^1]
         bookmarks = if exists_file(r"C:\Users\Asus\Desktop\bookmarks_cache.txt"):
             read_file(r"C:\Users\Asus\Desktop\bookmarks_cache.txt").split_lines
         else:
             get_from_html html_file
     echo "html time: ", cpuTime() - t2
 
+    # for i in bookmarks:
+    #     if "httpclient" in i:
+    #         echo i
+    # if true: quit(0)
+
     let
         t35 = readFile(r"D:\Documents\35 - Copy.txt").split_lines
-        all_links = bookmarks.concat(tabs).filterIt(it.startsWith "http").mapIt(a(it))
+        all_links = bookmarks.concat(tabs).filter_it(it.starts_with "http").map_it(a(it))
         t3 = cpuTime()
     # writeFile("C:\\Users\\Asus\\Desktop\\alltabs.txt", all_links.join("\n")) # .mapIt(a(it))
     # if true: quit(0)
@@ -98,7 +97,7 @@ proc find_existing_in_bookmarks(ls: seq[string]): seq[string] =
 proc main(file_path: string) =
     let ls = if file_path.ends_with(".json"):
             get_from_json file_path
-        elif file_path.endsWith(".html"):
+        elif file_path.ends_with(".html"):
             get_from_html file_path
         else:
             read_file(file_path).split_lines
@@ -109,9 +108,9 @@ proc main(file_path: string) =
     let output = find_existing_in_bookmarks ls
     if output.len != 0 and output.len != ls.len:
         let (dir, name, ext) = split_file file_path
-        write_file(join_path(dir, name & "_uniq_links.txt"), output.join("\n"))
+        write_file(join_path(dir, name & "_uniq_links.txt"), output.join "\n")
 
-if paramCount() > 1 and paramStr(1) == "-c":
-    main(paramStr(2))
+if param_count() > 1 and param_str(1) == "-f":
+    main(param_str(2))
 else:
-    main(r"C:\Users\Asus\Desktop\firefox_resolve\bookmarks_firefox_180829_2014_copy_copy.html")
+    main(r"C:\Users\Asus\Desktop\firefox_resolve\tabs_190727_2332.txt")

@@ -43,7 +43,7 @@ proc findEmptyFolders(path: string) =
         # echo k, " ", dir
 # -------------------------------------------------------------------
 proc prettyPrint(file: string) =
-    writeFile(file, readFile(file).parseJson.pretty) 
+    writeFile(file, readFile(file).parseJson.pretty)
 # -------------------------------------------------------------------
 proc arrow() =
     type fptr = (int -> int)
@@ -74,7 +74,7 @@ proc getLinksOnly(file_path: string): seq[string] =
 proc joyGet(url: string) =
     # ? TODO: Add dimensions and file size restrictions
     let pics = parseHtml(newHttpClient().getContent url).findAll("img").mapIt(it.attr "src")
-        .filterIt("avatar" notin it and [".jpeg", ".gif", ".png", ".jpg"].any(x => it.endsWith(x)))
+        .filterIt("avatar" notin it and [".jpeg", ".gif", ".png", ".jpg"].any(x => it.endsWith x))
     echo pics.len, "\n", pics
 # -------------------------------------------------------------------
 proc stripFaviconImages(old_file_path: string) =
@@ -279,7 +279,7 @@ proc moveToFoldersByExtension(path: string) =
 # echo getLinksOnly(r"")
 # openLinks("""""")
 # findEmptyFolders(r"C:\Users\Asus\Desktop\f")
-# joyDl()
+# joyGet("")
 # sortHnFileByCommentsNum(r"C:\Users\Asus\Desktop\hn1.txt")
 # getCommentsForHnLinks(r"")
 # stripFaviconImages(r"")

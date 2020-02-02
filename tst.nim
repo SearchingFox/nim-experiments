@@ -141,9 +141,7 @@ proc deduplicateAndSaveOrder(file_path: string) =
 # -------------------------------------------------------------------
 proc queueYtdl() =
     let links = """
-https://www.youtube.com/watch?v=iGiHa3GtQhM
-https://www.twitch.tv/videos/451307155
-https://www.twitch.tv/videos/448285685"""
+https://www.youtube.com/watch?v=iGiHa3GtQhM"""
     for i in links.split_lines:
         let t = execCmd("youtube-dl.exe " & i)  # startProcess, bunches of startProcesses
         echo t

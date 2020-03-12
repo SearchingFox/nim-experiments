@@ -1,6 +1,6 @@
 import os, strutils, browsers, sequtils, sets, json, sugar, uri, base64,
     htmlparser, httpclient, xmltree, algorithm, tables, streams, random,
-    md5, macros, osproc, oids, times
+    md5, macros, osproc, oids, times, strformat
 
 proc getFoldersSize(path: string) =
     var size: BiggestInt = 0
@@ -24,10 +24,10 @@ proc compareFiles(file1: string, file2: string) =
 # -------------------------------------------------------------------
 proc deleteLinesFromFile(filePath: string, linesSeq: seq[string]) =
     var fileContent = readFile(filePath).splitLines
-    writeFile(filePath, fileContent.filterIt(it notin linesSeq).join("\n"))
+    writeFile(filePath & "_new.txt", fileContent.filterIt(it notin linesSeq).join("\n"))
 # -------------------------------------------------------------------
 proc deduplicateFile(filePath: string) =
-    writeFile(filePath, readFile(filePath).splitLines.deduplicate.join("\n"))
+    writeFile(filePath & "_new.txt", readFile(filePath).splitLines.deduplicate.join("\n"))
 # -------------------------------------------------------------------
 proc concatNotes(folder: string) =
     var outSeq = newSeq[string]()
@@ -186,6 +186,26 @@ proc moveToFoldersByExtension(path: string) =
             except Exception:
                 echo "Nope:", name, ext
 # -------------------------------------------------------------------
+proc update_ffmpeg() =
+    newHttpClient().downloadFile("https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-latest-win64-static.zip", "ffmpeg-latest-win64-static.zip")
+    let t = execCmd("C:\\Program Files\\7-Zip\\7z.exe e ffmpeg-latest-win64-static.zip -o D:\\Documents\\Programs\\ffmpeg1")  # startProcess, bunches of startProcesses
+    # delete old folder
+    # create folder
+    # copy one folder to another
+    echo t
+# -------------------------------------------------------------------
+proc cut_by_time(path: string, times: string) =
+    # TODO: add file instead of times string?
+    var (dir, name, ext) = path.splitFile()
+    discard existsOrCreateDir(joinPath(dir, name))
+    let songs = times.splitLines.mapIt(it.rsplit(" ", 1))
+
+    for i in 0 ..< t.len-1:
+        let song_cmd = "ffmpeg -i \"" & path & "\" -acodec copy -ss " & t[i][1] & " -to " & songs[i+1][1] & " \"" & joinPath(dir, name, songs[i][0].filterIt(it notin "<>:\"/\\|?*").join()) & ext & "\""
+        discard execCmd(song_cmd)
+    let last_song_cmd = "ffmpeg -i \"" & path & "\" -acodec copy -ss " & songs[^1][1] & " \"" & joinPath(dir, name, songs[^1][0].filterIt(it notin "<>:\"/\\|?*").join()) & ext & "\""
+    discard execCmd(last_song_cmd)
+# -------------------------------------------------------------------
 # macro test(n: varargs[untyped]): untyped =
 #     for x in n.children:
 #         echo x.repr
@@ -273,7 +293,9 @@ proc moveToFoldersByExtension(path: string) =
 #     for f in files:
 #         if l in readFile(f).split_lines:
 #             echo l
-# ------------------------------------------------------------
+# -------------------------------------------------------------------
+# -------------------------------------------------------------------
+# -------------------------------------------------------------------
 # echo getLinksOnly(r"")
 # openLinks("""""")
 # findEmptyFolders(r"C:\Users\Asus\Desktop\f")
@@ -289,6 +311,25 @@ proc moveToFoldersByExtension(path: string) =
 # echo decode("")
 # randomize(); echo rand(39)
 # echo genOid()
+
+# update_ffmpeg()
+# import itertools
+# for i, j in toSeq(distinctPermutations([1,2,3,4])):
+#     echo i, j
+let s = """
+01. Hurricane tonight (Konya wa Hurricane) 00:00
+02. Mr. Dandy 04:41
+03. Wild and Scarred 08:42
+04. Victory 12:59
+05. Crisis Run with anger 17:05
+06. Twilight 20:53
+07. Soldiers of Roses 25:36
+08. Embraced in memory 28:59
+09. Rock Me 33:38
+10. Say, Yes! 37:29
+11. Never The End 43:39
+12. Chase The Dream 48:37"""
+# cut_by_time(r"C:\Users\Asus\Desktop\test.m4a", s)
 
 # kg_get("")
 # cmpFiles()

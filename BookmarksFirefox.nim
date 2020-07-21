@@ -10,9 +10,9 @@ proc get_from_html(file_path: string): seq[string] =
 proc get_from_json(file_path: string): seq[string] =
     for i in parseFile(file_path):
         try:
-            for _, y in i["windows"]:
-                for _, z in y:
-                    result.add(z["url"].getStr)
+            for _, window in i["windows"]:
+                for _, link in window:
+                    result.add(link["url"].getStr)
         except:
             echo "Got exception ", repr(getCurrentException()), " with message ", getCurrentExceptionMsg()
 
@@ -43,8 +43,12 @@ proc a(i: string): string =
     
     return result
 
+# proc new_format(file_path: string): seq[string] =
+#     for i in read_file(file_path).split_lines
+
 proc find_existing_in_bookmarks(ls: seq[string]): seq[string] =
     let tabs = get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\tabs"
+    let hn = get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\hn"
     let
         t2 = cpuTime()
         html_file = to_seq(walk_files(r"C:\Users\Asus\Desktop\bookmarks_firefox_*.html")).sorted()[^1]
@@ -63,6 +67,7 @@ proc find_existing_in_bookmarks(ls: seq[string]): seq[string] =
         t35 = readFile(r"D:\Documents\35 - Copy.txt").split_lines
         all_links = bookmarks.concat(tabs).filter_it(it.starts_with "http").map_it(a(it))
         t3 = cpuTime()
+    echo all_links.len
     # writeFile("C:\\Users\\Asus\\Desktop\\alltabs.txt", all_links.join("\n")) # .mapIt(a(it))
     # if true: quit(0)
     var
@@ -87,20 +92,27 @@ proc find_existing_in_bookmarks(ls: seq[string]): seq[string] =
             not_exist.add(line)
     echo "processing time: ", cpuTime() - t3
 
-    if exist.len < 80:
+    if exist.len < 180:
         echo "\n", exist
     echo "\nnotin bookmarks: ", not_exist.len,
          "\nin bookmarks:    ", exist.len
 
     return not_exist
 
-proc main(file_path: string) =
-    let ls = if file_path.ends_with(".json"):
-            get_from_json file_path
-        elif file_path.ends_with(".html"):
-            get_from_html file_path
-        else:
-            read_file(file_path).split_lines
+proc main(file_path: string, format: string="old") =
+    var ls = newSeq[string]()
+    if format == "new":
+        # Maybe indexes += 2
+        for i, j in toSeq(read_file(file_path).split_lines):
+            if i mod 2 != 0:
+                ls.add(j)
+    else:
+        ls = if file_path.ends_with(".json"):
+                get_from_json file_path
+            elif file_path.ends_with(".html"):
+                get_from_html file_path
+            else:
+                read_file(file_path).split_lines
     echo "links from file: ", ls.len
     # writeFile(file_path[0..^6] & "_links.txt", ls.join("\n"))
     # if true: quit(0)
@@ -113,4 +125,4 @@ proc main(file_path: string) =
 if param_count() > 1 and param_str(1) == "-f":
     main(param_str(2))
 else:
-    main(r"C:\Users\Asus\Desktop\firefox_resolve\tabs_190727_2332.txt")
+    main(r"", "new")

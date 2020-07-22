@@ -9,7 +9,7 @@ var client = newHttpClient()
 client.headers["Authorization"] = readFile(joinPath(getAppDir(), "config"))
 
 echo "Enter URL:"
-var link = readLine(stdin)
+var link = readLine stdin
 link = if link[^1] == '/': link[0..^2] else: link
 echo link
 

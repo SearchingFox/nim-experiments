@@ -1,6 +1,6 @@
 import os, strutils, browsers, sequtils, sets, json, sugar, uri, base64,
     htmlparser, httpclient, xmltree, algorithm, tables, streams, random,
-    md5, macros, osproc, oids, times, strformat
+    md5, macros, osproc, oids, times, strformat, itertools, strtabs
 
 proc getFoldersSize(path: string) =
     var size: BiggestInt = 0
@@ -176,35 +176,66 @@ proc cmpFiles(sourceF: string, testF: string) =
     writeFile(r"C:\Users\Asus\Desktop\ttt3.txt", s.join("\n"))
 # -------------------------------------------------------------------
 proc moveToFoldersByExtension(path: string) =
+    #! NOUSE
+    # TODO: If only one file with such extension exist, skip it
     for k, p in walkDir(path):
         if k == pcFile:
             var (dir, name, ext) = p.splitFile
             echo ext
             try:
                 discard existsOrCreateDir(joinPath(path, ext[1..^1]))
-                moveFile(p, joinPath(path, ext[1..^1], name.addFileExt(ext)))
+                moveFile(p, joinPath(path, ext[1..^1], name.addFileExt(ext))) #! Check for existing files
             except Exception:
                 echo "Nope:", name, ext
 # -------------------------------------------------------------------
 proc update_ffmpeg() =
-    newHttpClient().downloadFile("https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-latest-win64-static.zip", "ffmpeg-latest-win64-static.zip")
-    let t = execCmd("C:\\Program Files\\7-Zip\\7z.exe e ffmpeg-latest-win64-static.zip -o D:\\Documents\\Programs\\ffmpeg1")  # startProcess, bunches of startProcesses
-    # delete old folder
-    # create folder
-    # copy one folder to another
-    echo t
+    # ? add check for dates
+    newHttpClient().downloadFile("https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-latest-win64-static.zip", "D:\\Downloads\\ffmpeg-latest-win64-static.zip")
+    if existsFile("D:\\Downloads\\ffmpeg-latest-win64-static.zip"):
+        echo "Downloaded ffmpeg-latest-win64-static.zip"
+        discard execCmd("\"C:\\Program Files\\7-Zip\\7z.exe\" x D:\\Downloads\\ffmpeg-latest-win64-static.zip -oD:\\Documents\\Programs")
+        removeDir("D:\\Documents\\Programs\\ffmpeg")
+        # discard execProcess("C:\\Program Files\\7-Zip\\7z.exe", args=["x", "ffmpeg-latest-win64-static.zip", "-oD:\\Documents\\Programs"])
+        moveDir("D:\\Documents\\Programs\\ffmpeg-latest-win64-static", "D:\\Documents\\Programs\\ffmpeg")
+        removeFile("D:\\Downloads\\ffmpeg-latest-win64-static.zip")
+        # echo t
 # -------------------------------------------------------------------
 proc cut_by_time(path: string, times: string) =
     # TODO: add file instead of times string?
     var (dir, name, ext) = path.splitFile()
     discard existsOrCreateDir(joinPath(dir, name))
-    let songs = times.splitLines.mapIt(it.rsplit(" ", 1))
+    let songs = times.splitLines.mapIt(it.rsplit(" ", 1)) # linked list ?
 
-    for i in 0 ..< t.len-1:
-        let song_cmd = "ffmpeg -i \"" & path & "\" -acodec copy -ss " & t[i][1] & " -to " & songs[i+1][1] & " \"" & joinPath(dir, name, songs[i][0].filterIt(it notin "<>:\"/\\|?*").join()) & ext & "\""
+    for i in 0 ..< songs.len-1:
+        let song_cmd = "ffmpeg -i \"" & path & "\" -acodec copy -ss " & songs[i][1] & " -to " & songs[i+1][1] & " \"" & joinPath(dir, name, songs[i][0].filterIt(it notin "<>:\"/\\|?*").join()) & ext & "\""
         discard execCmd(song_cmd)
     let last_song_cmd = "ffmpeg -i \"" & path & "\" -acodec copy -ss " & songs[^1][1] & " \"" & joinPath(dir, name, songs[^1][0].filterIt(it notin "<>:\"/\\|?*").join()) & ext & "\""
     discard execCmd(last_song_cmd)
+# -------------------------------------------------------------------
+proc get_jr_sidebar() =
+    let url = "http://joyreactor.cc"
+    let table = newHttpClient().getContent(url).parseHtml.findAll("div")
+        .filterIt(it.attr("id") == "blogs_week_content")[0].findAll("a")
+        .filterIt(it.attrs.hasKey("title")).mapIt((url & it.attr("href"), it.attr("title"))) #? Delete filter by title
+    for t in table.sorted((x, y) => cmp(x[0].len, y[0].len)):
+        echo t[0], "\t", t[1] #? Delete second element
+# -------------------------------------------------------------------
+proc get_firefox_bookmarks_folder(fst_id: string, snd_id: string) =
+    var c = 0
+    var flag = false
+    for line in lines("C:\\Users\\Asus\\Desktop\\bookmarks_firefox_200329_0337_noicons.html"):
+        c += 1
+        if fst_id in line:
+            flag = true
+        if flag and "HREF" in line:
+            var name = line[line.find("\">")+2 ..< line.find("</A")].split("; ", 1)
+            if name.len > 1:
+                echo name[1]
+            else:
+                echo name[0]
+            echo line[line.find("=\"")+2 ..< line.find("\" ")]
+        if snd_id in line:
+            flag = false  # break
 # -------------------------------------------------------------------
 # macro test(n: varargs[untyped]): untyped =
 #     for x in n.children:
@@ -213,6 +244,19 @@ proc cut_by_time(path: string, times: string) =
 # discard test(1)
 # discard test(1,2)
 # discard test(1,b=2)
+# -------------------------------------------------------------------
+# Use Nim's macro system to transform a dense # data-centric description of x86 instructions
+# into lookup tables that are used by # assemblers and JITs.
+# macro toLookupTable(data: static[string]): untyped =
+#   result = newTree(nnkBracket)
+#   for w in data.split(';'):
+#     result.add newLit(w)
+
+# const
+#   data = "mov;btc;cli;xor"
+#   opcodes = toLookupTable(data)
+# for o in opcodes:
+#   echo o
 # -------------------------------------------------------------------
 # echo lc[x | (x <- 1..10, x mod 2 == 0), int]
 # -------------------------------------------------------------------
@@ -293,44 +337,97 @@ proc cut_by_time(path: string, times: string) =
 #     for f in files:
 #         if l in readFile(f).split_lines:
 #             echo l
+
+# let test = collect(newSeq):
+#     for i in 1..10: i
+# echo test
+# -------------------------------------------------------------------
+# randomize()
+# var s = 0
+# for i in 1..100:
+#     var t, tt: int
+#     t = rand(2)
+#     if t == 0:
+#         tt = rand(4) + 5
+#     if t == 1:
+#         tt = rand(9) + 5
+#     if t == 2:
+#         tt = rand(19) + 5
+#     s += tt
+# echo s / 100
+# -------------------------------------------------------------------
+# for i, j in toSeq(distinctPermutations([1,2,3,4])):
+#     echo i, j
+# -------------------------------------------------------------------
+# type
+#   Comparable = concept x, y
+#     (x < y) is bool
+  
+#   Stack[T] = concept s, var v
+#     s.pop() is T
+#     v.push(T)
+    
+#     s.len is Ordinal
+    
+#     for value in s:
+#       value is T
+# -------------------------------------------------------------------
+# var arr = newSeq[proc()]()
+# for j in 0..<10:
+#   closureScope:
+#     let x : int = j + 1
+#     let p = proc() = echo x
+#     arr.add(p)
+
+# for p in arr:
+#   p()
+# -------------------------------------------------------------------
+# let powersOfTwo = @[1, 2, 4, 8, 16, 32, 64, 128, 256]
+# echo(powersOfTwo.filter do (x: int) -> bool: x > 32)
+# echo powersOfTwo.filter(proc (x: int): bool = x > 32)
+# proc greaterThan32(x: int): bool = x > 32
+# echo powersOfTwo.filter(greaterThan32)
+# -------------------------------------------------------------------
+# let html_file = to_seq(walk_files(r"C:\Users\Asus\Desktop\bookmarks_firefox_*.html")).sorted()[^1]
+# for line in lines(html_file):
+#     if line.strip.starts_with("<DT><A"):
+#         let i = line[line.find("\"")+1 ..< line.find("\" A")]
+#         var res: string
+#         if i.startswith("http"):
+#             try:
+#                 res = i.split("://")[1]
+#             except Exception:
+#                 echo "a:", i
+#                 res = i
+#         else:
+#             res = i
+# -------------------------------------------------------------------
+# let mys = @[(1, 2), (3,4), (5,6), (7,8)]
+# for i, (x, y) in mys:
+#     echo i, x, y
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
 # echo getLinksOnly(r"")
 # openLinks("""""")
-# findEmptyFolders(r"C:\Users\Asus\Desktop\f")
+# findEmptyFolders(r"")
 # joyGet("")
-# sortHnFileByCommentsNum(r"C:\Users\Asus\Desktop\hn1.txt")
+# sortHnFileByCommentsNum(r"")
 # getCommentsForHnLinks(r"")
 # stripFaviconImages(r"")
 # deduplicateFile(r"")
 # downloadLinks()
 # dedupSaveOrder(r"")
+# cmpFiles()
+# moveToFoldersByExtension(r"")
 
 # echo decodeUrl("")
 # echo decode("")
 # randomize(); echo rand(39)
 # echo genOid()
 
-# update_ffmpeg()
-# import itertools
-# for i, j in toSeq(distinctPermutations([1,2,3,4])):
-#     echo i, j
-let s = """
-01. Hurricane tonight (Konya wa Hurricane) 00:00
-02. Mr. Dandy 04:41
-03. Wild and Scarred 08:42
-04. Victory 12:59
-05. Crisis Run with anger 17:05
-06. Twilight 20:53
-07. Soldiers of Roses 25:36
-08. Embraced in memory 28:59
-09. Rock Me 33:38
-10. Say, Yes! 37:29
-11. Never The End 43:39
-12. Chase The Dream 48:37"""
-# cut_by_time(r"C:\Users\Asus\Desktop\test.m4a", s)
+# get_jr_sidebar()
+# cut_by_time(r"", s)
 
 # kg_get("")
-# cmpFiles()
-# moveToFoldersByExtension(r"C:\Users\Asus\Desktop\f")
+# update_ffmpeg()

@@ -1,14 +1,17 @@
-import json, sequtils, sets, os, strutils, tables, times, algorithm, sugar, times
+import json
+import os
+import sequtils
+import sets
+import strutils
+import algorithm # only for sorted
 
 proc get_from_html(file_path: string): seq[string] =
     for line in lines(file_path):
         if line.strip.starts_with("<DT><A"):
             result.add(line[line.find("\"")+1 ..< line.find("\" A")])
 
-    return result.deduplicate
-
 proc get_from_json(file_path: string): seq[string] =
-    for i in parseFile(file_path):
+    for i in parse_file(file_path):
         try:
             for _, window in i["windows"]:
                 for _, link in window:
@@ -16,94 +19,51 @@ proc get_from_json(file_path: string): seq[string] =
         except:
             echo "Got exception ", repr(getCurrentException()), " with message ", getCurrentExceptionMsg()
 
-    return result.deduplicate
+proc get_from_folder(folder_path: string): seq[string] =
+    for _, path in walk_dir(folder_path):
+        result.add read_file(path).split_lines.filter_it(it.starts_with("http://") or it.starts_with "https://") # or ftp
 
-proc get_from_folder(path: string): seq[string] =
-    for k, path in walkDir(path):
-        result.add readFile(path).splitLines.filterIt(it.startsWith "http") # or ftp
-
-    return result.deduplicate
-
-proc get_from_org(file_path: string): seq[string] = # TODO: no body support
+proc get_from_org(file_path: string): seq[string] =
+    # TODO: no body support
     for l in lines(file_path):
-        if l.len > 0 and not l.startsWith("* "):
+        if l.len > 0 and not l.starts_with("* "):
             result.add l
 
-    return result.deduplicate
-
-proc a(i: string): string =
+proc del_http(i: string): string =
     if i.startswith("http"):
         try:
             result = i.split("://")[1]
         except Exception:
-            echo "in a:", i
+            echo "in del_http:", i
             result = i
     else:
         result = i
-    
-    return result
 
-# proc new_format(file_path: string): seq[string] =
-#     for i in read_file(file_path).split_lines
-
-proc find_existing_in_bookmarks(ls: seq[string]): seq[string] =
-    let tabs = get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\tabs"
-    let hn = get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\hn"
+proc find_notexisting_in_bookmarks(ls: seq[string]): seq[string] =
     let
-        t2 = cpuTime()
-        html_file = to_seq(walk_files(r"C:\Users\Asus\Desktop\bookmarks_firefox_*.html")).sorted()[^1]
-        bookmarks = if exists_file(r"C:\Users\Asus\Desktop\bookmarks_cache.txt"):
-            read_file(r"C:\Users\Asus\Desktop\bookmarks_cache.txt").split_lines
-        else:
-            get_from_html html_file
-    echo "html time: ", cpuTime() - t2
+        tabs = get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\tabs"
+        # hn = get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\hn"
+        # t35 = readFile(r"D:\Documents\35 - Copy.txt").split_lines
+        html_file = to_seq(walk_files r"C:\Users\Asus\Desktop\bookmarks_firefox_*.html").sorted()[^1]
+        bookmarks = get_from_html html_file
+        
+        all_links = bookmarks.concat(tabs).map_it(del_http(it)).to_hash_set
+        test_links = ls.map_it(del_http(it)).to_hash_set
 
-    # for i in bookmarks:
-    #     if "httpclient" in i:
-    #         echo i
-    # if true: quit(0)
-
-    let
-        t35 = readFile(r"D:\Documents\35 - Copy.txt").split_lines
-        all_links = bookmarks.concat(tabs).filter_it(it.starts_with "http").map_it(a(it))
-        t3 = cpuTime()
-    echo all_links.len
-    # writeFile("C:\\Users\\Asus\\Desktop\\alltabs.txt", all_links.join("\n")) # .mapIt(a(it))
-    # if true: quit(0)
-    var
-        not_exist = newSeq[string]()
-        exist     = newSeq[string]()
-        c = 0
-
-    for line in ls:
-        c += 1
-
-        var tmp: string
-        try:
-            tmp = if line.startswith("http"): line.split("://")[1] else: line
-        except Exception:
-            echo "in proc:", c, line
-            tmp = line
-        for i in all_links:
-            if tmp.strip == i:
-                exist.add(line)
-                break
-        if line notin exist:
-            not_exist.add(line)
-    echo "processing time: ", cpuTime() - t3
+    # TODO: restore http/https somehow
+    result = (test_links - all_links).to_seq
+    let exist = (test_links * all_links).to_seq
 
     if exist.len < 180:
         echo "\n", exist
-    echo "\nnotin bookmarks: ", not_exist.len,
+    echo "\nnotin bookmarks: ", result.len,
          "\nin bookmarks:    ", exist.len
 
-    return not_exist
-
 proc main(file_path: string, format: string="old") =
-    var ls = newSeq[string]()
+    var ls = new_seq[string]()
     if format == "new":
         # Maybe indexes += 2
-        for i, j in toSeq(read_file(file_path).split_lines):
+        for i, j in to_seq(read_file(file_path).split_lines):
             if i mod 2 != 0:
                 ls.add(j)
     else:
@@ -113,14 +73,12 @@ proc main(file_path: string, format: string="old") =
                 get_from_html file_path
             else:
                 read_file(file_path).split_lines
-    echo "links from file: ", ls.len
-    # writeFile(file_path[0..^6] & "_links.txt", ls.join("\n"))
-    # if true: quit(0)
+    echo "Got ", ls.len, " links from file"
 
-    let output = find_existing_in_bookmarks ls
-    if output.len != 0 and output.len != ls.len:
+    let not_exist = find_notexisting_in_bookmarks(ls).map_it("http://" & it)
+    if not_exist.len != 0 and not_exist.len != ls.len:
         let (dir, name, ext) = split_file file_path
-        write_file(join_path(dir, name & "_uniq_links.txt"), output.join "\n")
+        write_file(join_path(dir, name & "_uniq_links_2.txt"), not_exist.join "\n")
 
 if param_count() > 1 and param_str(1) == "-f":
     main(param_str(2))

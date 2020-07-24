@@ -66,11 +66,6 @@ proc downloadLinks() =
         echo "Saved ", fileName
         # sleep(500)
 # -------------------------------------------------------------------
-proc getLinksOnly(file_path: string): seq[string] =
-    for l in lines(file_path):
-        if "<A" in l:
-            result.add(l[l.find('"')+1 ..< l.find("\" A")])
-# -------------------------------------------------------------------
 proc joyGet(url: string) =
     # ? TODO: Add dimensions and file size restrictions
     let pics = parseHtml(newHttpClient().getContent url).findAll("img").mapIt(it.attr "src")
@@ -86,7 +81,7 @@ proc stripFaviconImages(old_file_path: string) =
             new_html.add(line)
     writeFile(old_file_path[ .. ^6] & "_noicons.html", new_html.join("\n"))
 # -------------------------------------------------------------------
-proc pikabuGet(url: string, pages = 1) =
+proc pikaGet(url: string, pages = 1) =
     var cur_url = url
     let folder = joinPath("D:", url.split('@')[^1])
     discard existsOrCreateDir(folder) #! discard ???
@@ -140,15 +135,14 @@ proc deduplicateAndSaveOrder(file_path: string) =
     writeFile(file_path[ .. ^5] & "_nodup.txt", t.join("\n"))
 # -------------------------------------------------------------------
 proc queueYtdl() =
-    let links = """
-https://www.youtube.com/watch?v=iGiHa3GtQhM"""
+    let links = """"""
     for i in links.split_lines:
         let t = execCmd("youtube-dl.exe " & i)  # startProcess, bunches of startProcesses
         echo t
 # -------------------------------------------------------------------
 proc kgGet(url: string) =
     if "gallery-full" notin url:
-        echo "Needs full gallery url"
+        echo "Use full gallery url"
         return
     
     let folder = joinPath("D:\\Downloadss", url.split('/')[^3] & "_" & url.split('/')[^2])
@@ -164,8 +158,6 @@ proc kgGet(url: string) =
         let fileName = joinPath(folder, p.split('/')[^1])
         if not fileName.existsFile: #? delete line
             newHttpClient().downloadFile(p, fileName)
-            # var f = newFileStream(fileName, fmWrite)
-            # if not f.isNil: f.write newHttpClient().getContent(p)
 # -------------------------------------------------------------------
 proc cmpFiles(sourceF: string, testF: string) =
     let t = readFile(sourceF).splitLines
@@ -173,7 +165,7 @@ proc cmpFiles(sourceF: string, testF: string) =
     for l in lines(testF):
         if l notin t: s.add(l)
         # else: echo l
-    writeFile(r"C:\Users\Asus\Desktop\ttt3.txt", s.join("\n"))
+    writeFile(r"", s.join("\n"))
 # -------------------------------------------------------------------
 proc moveToFoldersByExtension(path: string) =
     #! NOUSE
@@ -189,7 +181,7 @@ proc moveToFoldersByExtension(path: string) =
                 echo "Nope:", name, ext
 # -------------------------------------------------------------------
 proc update_ffmpeg() =
-    # ? add check for dates
+    # TODO: add check for dates
     newHttpClient().downloadFile("https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-latest-win64-static.zip", "D:\\Downloads\\ffmpeg-latest-win64-static.zip")
     if existsFile("D:\\Downloads\\ffmpeg-latest-win64-static.zip"):
         echo "Downloaded ffmpeg-latest-win64-static.zip"
@@ -220,22 +212,60 @@ proc get_jr_sidebar() =
     for t in table.sorted((x, y) => cmp(x[0].len, y[0].len)):
         echo t[0], "\t", t[1] #? Delete second element
 # -------------------------------------------------------------------
-proc get_firefox_bookmarks_folder(fst_id: string, snd_id: string) =
+proc get_ff_bookmarks_folder(start_id, end_id: string): seq[string] =
     var c = 0
     var flag = false
-    for line in lines("C:\\Users\\Asus\\Desktop\\bookmarks_firefox_200329_0337_noicons.html"):
+    for line in lines(""):
         c += 1
-        if fst_id in line:
+        if start_id in line:
             flag = true
         if flag and "HREF" in line:
             var name = line[line.find("\">")+2 ..< line.find("</A")].split("; ", 1)
             if name.len > 1:
-                echo name[1]
+                result.add(name[1].replace("&#39;", "'"))
             else:
-                echo name[0]
-            echo line[line.find("=\"")+2 ..< line.find("\" ")]
-        if snd_id in line:
-            flag = false  # break
+                result.add(name[0].replace("&#39;", "'"))
+            result.add(line[line.find("=\"")+2 ..< line.find("\" ")])
+        if end_id in line:
+            flag = false
+            break
+# -------------------------------------------------------------------
+proc get_ff_bookmarks_folder_1(file_name: string) =
+    # gets all links from subfolders
+    var
+        week_number = 1
+        in_year = false
+        in_week = false
+        week = newSeq[string]()
+        file_name: string
+
+    for line in lines(file_name):
+        if in_year:
+            if "<DT><H3" in line:
+                week_number += 1
+                in_week = true
+                week = newSeq[string]()
+                file_name = "C:\\Users\\Asus\\Desktop\\hn\\" & "18-" & (if week_number < 10: "0" else: "") & $week_number & ".txt"
+            if in_week and "HREF" in line:
+                var name = line[line.find("\">")+2 ..< line.find("</A")]
+                # if name.startswith("&gt; "):
+                #     name = name.split("&gt; ", 1)[1]
+                week.add(name.replace("&gt;", "").replace("&#39;", "'"))
+                #if name.len > 1: name[1] else: name[0])
+                #.replace("&#39;", "'"))
+                week.add(line[line.find("=\"")+2 ..< line.find("\" ")])
+            if in_week and "</DL><p>" in line:
+                in_week = false
+                # echo file_name
+                # echo week.len()
+                writeFile(file_name, week.join("\n"))
+                continue
+            if not in_week and "</DL><p>" in line:
+                in_year = false
+                continue  # ? break
+        elif ">2018</H3>" in line:
+            in_year = true
+            continue
 # -------------------------------------------------------------------
 # macro test(n: varargs[untyped]): untyped =
 #     for x in n.children:
@@ -257,8 +287,6 @@ proc get_firefox_bookmarks_folder(fst_id: string, snd_id: string) =
 #   opcodes = toLookupTable(data)
 # for o in opcodes:
 #   echo o
-# -------------------------------------------------------------------
-# echo lc[x | (x <- 1..10, x mod 2 == 0), int]
 # -------------------------------------------------------------------
 # var outStr = ""
 # for i in parseJson(readFile(""))["notes"]:
@@ -338,8 +366,7 @@ proc get_firefox_bookmarks_folder(fst_id: string, snd_id: string) =
 #         if l in readFile(f).split_lines:
 #             echo l
 
-# let test = collect(newSeq):
-#     for i in 1..10: i
+# let test = collect(newSeq): (for i in 1..10: i)
 # echo test
 # -------------------------------------------------------------------
 # randomize()
@@ -387,20 +414,6 @@ proc get_firefox_bookmarks_folder(fst_id: string, snd_id: string) =
 # echo powersOfTwo.filter(proc (x: int): bool = x > 32)
 # proc greaterThan32(x: int): bool = x > 32
 # echo powersOfTwo.filter(greaterThan32)
-# -------------------------------------------------------------------
-# let html_file = to_seq(walk_files(r"C:\Users\Asus\Desktop\bookmarks_firefox_*.html")).sorted()[^1]
-# for line in lines(html_file):
-#     if line.strip.starts_with("<DT><A"):
-#         let i = line[line.find("\"")+1 ..< line.find("\" A")]
-#         var res: string
-#         if i.startswith("http"):
-#             try:
-#                 res = i.split("://")[1]
-#             except Exception:
-#                 echo "a:", i
-#                 res = i
-#         else:
-#             res = i
 # -------------------------------------------------------------------
 # let mys = @[(1, 2), (3,4), (5,6), (7,8)]
 # for i, (x, y) in mys:

@@ -15,13 +15,15 @@ proc get_from_json(file_path: string): seq[string] =
         try:
             for _, window in i["windows"]:
                 for _, link in window:
-                    result.add(link["url"].getStr)
+                    result.add(link["url"].get_str)
         except:
             echo "Got exception ", repr(getCurrentException()), " with message ", getCurrentExceptionMsg()
 
 proc get_from_folder(folder_path: string): seq[string] =
     for _, path in walk_dir(folder_path):
-        result.add read_file(path).split_lines.filter_it(it.starts_with("http://") or it.starts_with "https://") # or ftp
+        result.add read_file(path).split_lines
+            .filter_it(it.starts_with("http://") or
+                       it.starts_with "https://") # or ftp
 
 proc get_from_org(file_path: string): seq[string] =
     # TODO: no body support
@@ -29,29 +31,25 @@ proc get_from_org(file_path: string): seq[string] =
         if l.len > 0 and not l.starts_with("* "):
             result.add l
 
-proc del_http(i: string): string =
-    if i.startswith("http"):
+proc del_http(i: string): (string, string) =
+    if i.starts_with("http"):
         try:
-            result = i.split("://")[1]
+            # Doesn't work
+            result = (i.split("://", 1)[1], i.split("://")[0])
         except Exception:
             echo "in del_http:", i
-            result = i
-    else:
-        result = i
 
 proc find_notexisting_in_bookmarks(ls: seq[string]): seq[string] =
     let
-        tabs = get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\tabs"
-        # hn = get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\hn"
-        # t35 = readFile(r"D:\Documents\35 - Copy.txt").split_lines
         html_file = to_seq(walk_files r"C:\Users\Asus\Desktop\bookmarks_firefox_*.html").sorted()[^1]
         bookmarks = get_from_html html_file
+        tabs = get_from_folder r"C:\Users\Asus\Desktop\firefox_resolve\tabs"
         
-        all_links = bookmarks.concat(tabs).map_it(del_http(it)).to_hash_set
-        test_links = ls.map_it(del_http(it)).to_hash_set
+        all_links = bookmarks.concat(tabs).map_it(del_http it).to_hash_set
+        test_links = ls.map_it(del_http it).to_hash_set
 
-    # TODO: restore http/https somehow
-    result = (test_links - all_links).to_seq
+    # TODO: restore order somehow
+    result = (test_links - all_links).to_seq().map_it(it[1] & "://" & it[0])
     let exist = (test_links * all_links).to_seq
 
     if exist.len < 180:
@@ -75,7 +73,7 @@ proc main(file_path: string, format: string="old") =
                 read_file(file_path).split_lines
     echo "Got ", ls.len, " links from file"
 
-    let not_exist = find_notexisting_in_bookmarks(ls).map_it("http://" & it)
+    let not_exist = find_notexisting_in_bookmarks(ls)
     if not_exist.len != 0 and not_exist.len != ls.len:
         let (dir, name, ext) = split_file file_path
         write_file(join_path(dir, name & "_uniq_links_2.txt"), not_exist.join "\n")

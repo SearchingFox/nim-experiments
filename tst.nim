@@ -11,8 +11,8 @@ proc getFoldersSize(path: string) =
 proc openLinks (inp: string) =
     for l in inp.splitLines.filterIt(it != ""): openDefaultBrowser l
 # -------------------------------------------------------------------
-proc deduplicateLines(liness: string) =
-    for i in liness.splitLines.deduplicate: echo i
+# proc deduplicateLines(liness: string) =
+#     for i in liness.splitLines.deduplicate: echo i
 # -------------------------------------------------------------------
 proc compareFiles(file1: string, file2: string) =
     let
@@ -79,7 +79,7 @@ proc stripFaviconImages(old_file_path: string) =
             new_html.add(line[0..line.find("ICON_URI")-2] & line[line.find("\">")+1..^1])
         else:
             new_html.add(line)
-    writeFile(old_file_path[ .. ^6] & "_noicons.html", new_html.join("\n"))
+    writeFile(old_file_path[0..^6] & "_noicons.html", new_html.join("\n"))
 # -------------------------------------------------------------------
 proc pikaGet(url: string, pages = 1) =
     var cur_url = url
@@ -102,12 +102,12 @@ proc pikaGet(url: string, pages = 1) =
             for link in links:
                 let pic_url = link.attr("data-large-image")
                 let fileName = joinPath(post_folder, pic_url.split('/')[^1])
-                if not fileName.existsFile:
+                if not fileName.fileExists:
                     newHttpClient().downloadFile(pic_url, fileName)
                     # var f = newFileStream(fileName, fmWrite)
                     # if not f.isNil:
                     #     f.write newHttpClient().getContent(pic_url)
-        
+
         cur_url = url & "?page=$1" % page.intToStr
 # -------------------------------------------------------------------
 proc z(x: typedesc[int]): int = 0
@@ -132,7 +132,7 @@ proc deduplicateAndSaveOrder(file_path: string) =
                 echo i
         else:
             t.add(i)
-    writeFile(file_path[ .. ^5] & "_nodup.txt", t.join("\n"))
+    writeFile(file_path[0..^5] & "_nodup.txt", t.join("\n"))
 # -------------------------------------------------------------------
 proc queueYtdl() =
     let links = """"""
@@ -140,24 +140,23 @@ proc queueYtdl() =
         let t = execCmd("youtube-dl.exe " & i)  # startProcess, bunches of startProcesses
         echo t
 # -------------------------------------------------------------------
-proc kgGet(url: string) =
-    if "gallery-full" notin url:
+proc kg_get(url: string) =
+    if "gallery-full" in url:
+        let folder = joinPath("D:\\Downloadss", url.split('/')[3].split('=')[1])
+        if existsOrCreateDir(folder):
+            echo "Directory already exists"
+            return
+
+        let pics = newHttpClient().getContent(url).parseHtml
+                    .findAll("a").mapIt(it.attr("href")).filterIt(it.endsWith(".jpg"))[1..^1]
+        echo pics.len
+
+        for p in pics:
+            let fileName = joinPath(folder, p.split('/')[^1])
+            if not fileName.fileExists:
+                newHttpClient().downloadFile(p, fileName)
+    else:
         echo "Use full gallery url"
-        return
-    
-    let folder = joinPath("D:\\Downloadss", url.split('/')[^3] & "_" & url.split('/')[^2])
-    if existsOrCreateDir(folder):
-        echo "Directory already exists"
-        return
-
-    let pics = newHttpClient().getContent(url).parseHtml
-                .findAll("a").mapIt(it.attr("href")).filterIt(it.endsWith(".jpg"))[1..^1]
-    echo pics.len
-
-    for p in pics:
-        let fileName = joinPath(folder, p.split('/')[^1])
-        if not fileName.existsFile: #? delete line
-            newHttpClient().downloadFile(p, fileName)
 # -------------------------------------------------------------------
 proc cmpFiles(sourceF: string, testF: string) =
     let t = readFile(sourceF).splitLines
@@ -181,16 +180,15 @@ proc moveToFoldersByExtension(path: string) =
                 echo "Nope:", name, ext
 # -------------------------------------------------------------------
 proc update_ffmpeg() =
-    # TODO: add check for dates
-    newHttpClient().downloadFile("https://ffmpeg.zeranoe.com/builds/win64/static/ffmpeg-latest-win64-static.zip", "D:\\Downloads\\ffmpeg-latest-win64-static.zip")
-    if existsFile("D:\\Downloads\\ffmpeg-latest-win64-static.zip"):
-        echo "Downloaded ffmpeg-latest-win64-static.zip"
-        discard execCmd("\"C:\\Program Files\\7-Zip\\7z.exe\" x D:\\Downloads\\ffmpeg-latest-win64-static.zip -oD:\\Documents\\Programs")
-        removeDir("D:\\Documents\\Programs\\ffmpeg")
-        # discard execProcess("C:\\Program Files\\7-Zip\\7z.exe", args=["x", "ffmpeg-latest-win64-static.zip", "-oD:\\Documents\\Programs"])
-        moveDir("D:\\Documents\\Programs\\ffmpeg-latest-win64-static", "D:\\Documents\\Programs\\ffmpeg")
-        removeFile("D:\\Downloads\\ffmpeg-latest-win64-static.zip")
-        # echo t
+    let file_url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z"
+    # "https://github.com" & newHttpClient().get_content("https://github.com/AnimMouse/ffmpeg-autobuild/releases").parse_html().find_all("a").filter_it(it.attr("href").ends_with("ffmpeg-win64-nonfree.7z"))[0].attr("href")
+    newHttpClient().download_file(file_url, "D:\\Documents\\Programs\\ffmpeg-git-full.7z")
+    if file_exists("D:\\Documents\\Programs\\ffmpeg-win64-nonfree.7z"):
+        echo r"Downloaded D:\Documents\Programs\ffmpeg-git-full.7z"
+        discard exec_cmd("\"C:\\Program Files\\7-Zip\\7z.exe\" x D:\\Documents\\Programs\\ffmpeg-git-full.7z -oD:\\Documents\\Programs")
+        remove_dir("D:\\Documents\\Programs\\ffmpeg")
+        move_dir("D:\\Documents\\Programs\\ffmpeg-git-full", "D:\\Documents\\Programs\\ffmpeg")
+        remove_file("D:\\Documents\\Programs\\ffmpeg-git-full.7z")
 # -------------------------------------------------------------------
 proc cut_by_time(path: string, times: string) =
     # TODO: add file instead of times string?
@@ -213,8 +211,10 @@ proc get_jr_sidebar() =
         echo t[0], "\t", t[1] #? Delete second element
 # -------------------------------------------------------------------
 proc get_ff_bookmarks_folder(start_id, end_id: string): seq[string] =
-    var c = 0
-    var flag = false
+    var
+        c    = 0
+        flag = false
+
     for line in lines(""):
         c += 1
         if start_id in line:
@@ -227,8 +227,8 @@ proc get_ff_bookmarks_folder(start_id, end_id: string): seq[string] =
                 result.add(name[0].replace("&#39;", "'"))
             result.add(line[line.find("=\"")+2 ..< line.find("\" ")])
         if end_id in line:
-            flag = false
             break
+    echo c
 # -------------------------------------------------------------------
 proc get_ff_bookmarks_folder_1(file_name: string) =
     # gets all links from subfolders
@@ -266,6 +266,13 @@ proc get_ff_bookmarks_folder_1(file_name: string) =
         elif ">2018</H3>" in line:
             in_year = true
             continue
+# -------------------------------------------------------------------
+proc bookmarks_to_md(file_path: string) =
+    let inp = readFile(file_path).splitLines
+    var res = newSeq[string]()
+    for i in countup(0, inp.len-1, 2):
+        res.add("[" & inp[i] & "]" & "(" & inp[i+1] & ")")
+    echo res.join("\n")
 # -------------------------------------------------------------------
 # macro test(n: varargs[untyped]): untyped =
 #     for x in n.children:
@@ -389,13 +396,13 @@ proc get_ff_bookmarks_folder_1(file_name: string) =
 # type
 #   Comparable = concept x, y
 #     (x < y) is bool
-  
+
 #   Stack[T] = concept s, var v
 #     s.pop() is T
 #     v.push(T)
-    
+
 #     s.len is Ordinal
-    
+
 #     for value in s:
 #       value is T
 # -------------------------------------------------------------------
@@ -444,3 +451,14 @@ proc get_ff_bookmarks_folder_1(file_name: string) =
 
 # kg_get("")
 # update_ffmpeg()
+
+# bookmarks_to_md("C:/Users/Asus/Desktop/firefox_resolve/tabs_200819_1623.txt")
+
+# proc update_neovim() =
+#     newHttpClient().downloadFile("https://github.com/neovim/neovim/releases/download/nightly/nvim-win64.zip", "D:\\Downloads\\nvim-win64.zip")
+
+
+# var result = newSeq[string]()
+# for _, file in walkDir("C:\\Users\\Asus\\Desktop\\firefox_resolve\\notes\\part1"):
+#     result.add(file.read_file)
+# writeFile(joinPath("C:\\Users\\Asus\\Desktop\\firefox_resolve\\notes1.txt"), result.join("\n"))
